@@ -1,12 +1,12 @@
 /**
- * A chess engine inspired by [sunfish](https://github.com/thomasahle/sunfish).  
+ * A javascript chess engine inspired by [sunfish](https://github.com/thomasahle/sunfish).
  * @module jackfish
  * @author Mattias Ahlsén (mattias.ahlsen@gmail.com)
  * @example
  * import Engine from 'jackfish';
  * const game = new Engine();
  *
- * @flow Uses flow types
+ * @flow
  */
 
 /*
@@ -34,43 +34,49 @@ King: 'K' and 'k'
 
 /**
  * Configuration object for the engine.
- * @typedef {Object} Config
- * @property {string} startPos The FEN string of the starting position.
+ * @name Config
+ * @property {string?} startPos The FEN string of the starting position.
  * @example
  * const config = {
  *   startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
  * }
  */
-type Config = {
+export type Config = {
   startPos?: string,
 }
+
+const defaultConfig: Config = {
+  startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+};
 
 /**
  * The chess engine, including game mechanics and
  * a configurable AI. (default export)
  * @example const game = new Engine();
- * @param config Configuration object.
+ * @param options Configuration object.
  * @param {string}
- * [config.position='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']
- * Position. Defaults to standard starting position.
+ * [options.startPos='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']
+ * Starting position. Defaults to standard starting position.
  *
  * @return {Engine}
  */
 export default class Engine {
-  constructor(config?: Config): Engine {
+  config: Config = defaultConfig;
 
+  constructor(options?: Config) {
+    if (options) this.configure(options);
   }
 
   /**
    * Configurate the engine (only changes passed properties).
    * @example
-   * // reset to starting position
-   * game.config({ position: ''rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1});
+   * // set starting position to standard
+   * game.configure({ startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' });
    * @param options   Same type of configuration object passed to
    *                  constructor.
    */
-  config(options: Config): void {
-
+  configure(options: Config): void {
+    for (const key in options) this.config[key] = options[key];
   }
 
   /**
@@ -78,12 +84,12 @@ export default class Engine {
    * @return The configuration object.
    */
   getConfig(): Config {
-
+    return this.config;
   }
 
   /**
    * Changes the position.
-   * @param {string} fen The FEN string of the position to be set.
+   * @param fen The FEN string of the position to be set.
    * @return True if the FEN string was valid and the position was
    *         successfully changed.
    */
@@ -101,9 +107,9 @@ export default class Engine {
 
   /**
    * Moves from position o to position t, making sure it's a valid move.
-   * @param  {number} o Origin position.
-   * @param  {number} t Target position.
-   * @return {boolean}  True if it was a valid move.
+   * @param o Origin position.
+   * @param t Target position.
+   * @return True if it was a valid move.
    */
   move(o: number, t: number): boolean {
 
@@ -111,7 +117,7 @@ export default class Engine {
 
   /**
    * Undoes the latest move if there is one.
-   * @return {boolean} True if there was a move to be undone.
+   * @return True if there was a move to be undone.
    */
   undoMove(): boolean {
 
@@ -119,17 +125,15 @@ export default class Engine {
 
   /**
    * Let the AI make a move.
-   * @return {boolean} Returns true if there was a valid move to be made,
-   *                   otherwise false.
+   * @return Returns true if there was a valid move to be made,
+   *         otherwise false.
    */
   aiMove(): boolean {
 
   }
 
   /**
-   * Get the color of the winner.
-   * @return {string | null}  Name of winner (or tie) if game is over,
-   *                          else null.
+   * Get winner if there is one.
    */
   winner(): "white" | "black" | "tie" | null {
 

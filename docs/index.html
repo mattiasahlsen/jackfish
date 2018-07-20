@@ -58,9 +58,9 @@
                       <li class='h5'><span>Instance members</span></li>
                       
                       <li><a
-                        href='#engineconfig'
+                        href='#engineconfigure'
                         class='regular pre-open'>
-                        #config
+                        #configure
                       </a></li>
                       
                       <li><a
@@ -142,7 +142,7 @@
   </div>
   
 
-  <p>A chess engine inspired by <a href="https://github.com/thomasahle/sunfish">sunfish</a>.</p>
+  <p>A javascript chess engine inspired by <a href="https://github.com/thomasahle/sunfish">sunfish</a>.</p>
 
  
   
@@ -204,11 +204,6 @@
     <div class='pre p1 fill-light mt0'>Config</div>
    
   
-    <p>
-      Type:
-      <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a>
-    </p>
-  
   
 
   
@@ -225,7 +220,7 @@
     <div>
       
         <div class='space-bottom0'>
-          <span class='code bold'>startPos</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>)</code>
+          <span class='code bold'>startPos</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>?)</code>
           : The FEN string of the starting position.
 
           
@@ -275,7 +270,7 @@ a configurable AI. (default export)</p>
 
  
   
-    <div class='pre p1 fill-light mt0'>new Engine(config: <a href="#config">Config</a>): <a href="#engine">Engine</a></div>
+    <div class='pre p1 fill-light mt0'>new Engine(options: <a href="#config">Config</a>): <a href="#engine">Engine</a></div>
    
   
   
@@ -293,7 +288,7 @@ a configurable AI. (default export)</p>
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>config</span> <code class='quiet'>(<a href="#config">Config</a>)</code>
+            <span class='code bold'>options</span> <code class='quiet'>(<a href="#config">Config</a>)</code>
 	    Configuration object.
 
           </div>
@@ -312,11 +307,11 @@ a configurable AI. (default export)</p>
             <tbody class='mt1'>
               
                 <tr>
-  <td class='break-word'><span class='code bold'>config.position</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
+  <td class='break-word'><span class='code bold'>options.startPos</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
   
     (default <code>&#39;rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1&#39;</code>)
   </td>
-  <td class='break-word'><span>Position. Defaults to standard starting position.
+  <td class='break-word'><span>Starting position. Defaults to standard starting position.
 </span></td>
 </tr>
 
@@ -358,11 +353,11 @@ a configurable AI. (default export)</p>
     <div class='py1 quiet mt1 prose-big'>Instance Members</div>
     <div class="clearfix">
   
-    <div class='border-bottom' id='engineconfig'>
+    <div class='border-bottom' id='engineconfigure'>
       <div class="clearfix small pointer toggle-sibling">
         <div class="py1 contain">
             <a class='icon pin-right py1 dark-link caret-right'>▸</a>
-            <span class='code strong strong truncate'>config(options)</span>
+            <span class='code strong strong truncate'>configure(options)</span>
         </div>
       </div>
       <div class="clearfix display-none toggle-target">
@@ -374,7 +369,7 @@ a configurable AI. (default export)</p>
 
  
   
-    <div class='pre p1 fill-light mt0'>config(options: <a href="#config">Config</a>): void</div>
+    <div class='pre p1 fill-light mt0'>configure(options: <a href="#config">Config</a>): void</div>
    
   
   
@@ -418,8 +413,8 @@ constructor.
     <div class='py1 quiet mt1 prose-big'>Example</div>
     
       
-      <pre class='p1 overflow-auto round fill-light'><span class="hljs-comment">// reset to starting position</span>
-game.config({ <span class="hljs-attr">position</span>: <span class="hljs-string">''</span>rnbqkbnr/pppppppp/<span class="hljs-number">8</span>/<span class="hljs-number">8</span>/<span class="hljs-number">8</span>/<span class="hljs-number">8</span>/PPPPPPPP/RNBQKBNR w KQkq - <span class="hljs-number">0</span> <span class="hljs-number">1</span>});</pre>
+      <pre class='p1 overflow-auto round fill-light'><span class="hljs-comment">// set starting position to standard</span>
+game.configure({ <span class="hljs-attr">startPos</span>: <span class="hljs-string">'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'</span> });</pre>
     
   
 
@@ -820,11 +815,11 @@ otherwise false.
 
   
 
-  <p>Get the color of the winner.</p>
+  <p>Get winner if there is one.</p>
 
  
   
-    <div class='pre p1 fill-light mt0'>winner(): (<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a> | null)</div>
+    <div class='pre p1 fill-light mt0'>winner(): (<code>"white"</code> | <code>"black"</code> | <code>"tie"</code> | null)</div>
    
   
   
@@ -843,11 +838,7 @@ otherwise false.
   
     
       <div class='py1 quiet mt1 prose-big'>Returns</div>
-      <code>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a> | null)</code>:
-        Name of winner (or tie) if game is over,
-else null.
-
-      
+      <code>(<code>"white"</code> | <code>"black"</code> | <code>"tie"</code> | null)</code>
     
   
 
