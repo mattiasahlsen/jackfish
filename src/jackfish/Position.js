@@ -32,8 +32,7 @@ const steps = {
 export default class Position {
   turn: Color;
   board: Board;
-  wPieces: Pieces; // white pieces with positions
-  bPieces: Pieces; // black...
+  pieces: Pieces;
   wc: CastlingRights;
   bc: CastlingRights;
   score: number;
@@ -43,8 +42,7 @@ export default class Position {
   constructor(
     turn: Color,
     board: Board,
-    wPieces: Pieces,
-    bPieces: Pieces,
+    pieces: Pieces, // black...
     wc: CastlingRights, // white castling rights
     bc: CastlingRights, // black...
     ep: number,
@@ -53,8 +51,7 @@ export default class Position {
     // just copy all the parameters to fields.
     this.turn = turn;
     this.board = board;
-    this.wPieces = wPieces;
-    this.bPieces = bPieces;
+    this.pieces = pieces;
     this.wc = wc;
     this.bc = bc;
     this.ep = ep;
@@ -65,8 +62,10 @@ export default class Position {
   /**
    * Returns valid moves (including moves that result in king-take).
    */
-  gen_moves(): Array<Move> {
+  geMoves(): Array<Move> {
+    for (let i = 0; i < this.pieces[this.turn].length; i++) {
 
+    }
   }
 
   /**
