@@ -9,6 +9,11 @@
  * @flow
  */
 
+import type { Board, Piece, Pieces, CR } from './declarations';
+import { pieces, BLACK, WHITE } from './declarations';
+import { isWhite } from './helpers';
+import Position from './Position';
+
 /*
 The board is represented as an array with indexes like this:
 8 |  0  1  2  3  4  5  6  7
@@ -62,6 +67,8 @@ const defaultConfig: Config = {
  */
 export default class Engine {
   config: Config = defaultConfig;
+  history: Array<Position> = [];
+  position: Position;
 
   constructor(options?: Config) {
     if (options) this.configure(options);
@@ -88,13 +95,97 @@ export default class Engine {
   }
 
   /**
-   * Changes the position.
+   * Changes to the new position and clears history array.
    * @param fen The FEN string of the position to be set.
-   * @return True if the FEN string was valid and the position was
+   * @return True if the FEN string was valid enough and the position was
    *         successfully changed.
    */
   setPos(fen: string): boolean {
+    const board: Board = [];
+    const boardPieces: Pieces = [[], []]; // 'pieces' name already taken
+    let turn;
+    let wc: CR = [false, false];
+    let bc: CR = [false, false];
+    let ep = -1; // default is none
+    let kp = -1;
+    let halfMoveClock;
+    let fullMove;
 
+    const subs = fen.trim().split(/ +/); // get substrings
+    if (subs.length !== 6) return false;
+
+    let pos = 0; // current board position
+    let i = 0; // index of string
+    // The board array is indexed the same way as FEN notation.
+    while (i < subs[0].length) {
+      let c = subs[0].charAt(i); // currently parsed char
+      const num = parseInt(c);
+      if (Number.isInteger(num) && num > 0) {
+        if (num > 8 - pos % 8) return false;
+        pos += num;
+      } else if (pieces.includes(c)) {
+        // Cast to piece when we know it is one.
+        c = ((c: any): Piece)
+        board[pos] = ((c: any): Piece);
+        // add to pieces array
+        if (isWhite(c)) boardPieces[0].push({ pos, piece: c });
+        else boardPieces[1].push({ pos, piece: c });
+        pos++;
+      } else {
+        return false; // invalid FEN
+      }
+      i++;
+      if (pos >= 64) break; // should not be able to be bigger than 64
+      else if (pos % 8 === 0) {
+        if (subs[0].charAt(i) !== '/') return false;
+        i++;
+      }
+    }
+    if (fen.charAt(i) !== ' ') return false;
+
+    switch (subs[1]) {
+      case 'w': turn = WHITE; break;
+      case 'b': turn = BLACK; break;
+      default: return false;
+    }
+
+    if (subs[2] !== '-') {
+      if (subs[2].length > 4) return false;
+      const used = [];
+      for (let i = 0; i < subs[2].length; i++) {
+        const c = subs[2].charAt(i);
+        if (used.includes(c)) return false; // may only occur once
+        switch (c) {
+          case 'K': wc[0] = true; break; // breaks out of switch
+          case 'Q': wc[1] = true; break;
+          case 'k': bc[0] = true; break;
+          case 'q': bc[1] = true; break;
+          default: return false;
+        }
+        used.push(c);
+      }
+    }
+
+    if (subs[3] !== '-') {
+      if (subs[3].length !== 2) return false;
+      const c1 = subs[3].charCodeAt(0);
+      const c2 = subs[3].charCodeAt(1);
+      if (!(c1 >= 97 && c1 <= 104 && c2 >= 49 && c2 <= 56)) return false;
+
+      // 97 is ascii for 'a' and 49 for '1'
+      ep = c1 - 97 + 56 - (c2 - 49) * 8;
+    }
+
+    halfMoveClock = parseInt(subs[4]);
+    fullMove = parseInt(subs[5]);
+    if (!(Number.isInteger(halfMoveClock) && halfMoveClock >= 0)) return false;
+    if (!(Number.isInteger(fullMove) && fullMove > 0)) return false;
+
+    // if we've made it this far, we're golden
+    this.position = new Position(
+      board, boardPieces, turn, wc, bc, ep, kp, halfMoveClock, fullMove
+    );
+    return true;
   }
 
   /**

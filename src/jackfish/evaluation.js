@@ -90,7 +90,7 @@ export const pstRaw = {
 
 // Join psts with piece values into a final pst, and add mirrored tables
 // for black pieces
-export const pst: Object = {};
+export const pst = {};
 for (const key in pstRaw) {
   const bKey = key.toLowerCase(); // corresponding black piece key
   pst[key] = [];
@@ -109,9 +109,7 @@ export default function evaluate(board: Board): number {
   for (let i = 0; i < 64; i++) {
     const piece: Piece = board[i];
     if (piece !== ' ') {
-      // $FlowFixMe
       if (isWhite(piece)) value += pst[piece][i];
-      // $FlowFixMe
       else value -= pst[piece][i];
     }
   }

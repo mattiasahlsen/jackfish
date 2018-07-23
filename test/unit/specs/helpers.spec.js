@@ -1,4 +1,7 @@
-// @flow
+/**
+ * Tests for jackfish/helpers.js
+ * @flow
+ */
 
 import { isWhite } from '@/jackfish/helpers';
 

@@ -3,8 +3,8 @@
  * @flow
  */
 
-import type { BLACK, WHITE, Color, Board,
-  Pieces, Move, CastlingRights } from './declarations';
+import type { Color, Board,
+  Pieces, Move, CR } from './declarations';
 
 import evaluate, { piece, pst } from './evaluation';
 
@@ -30,24 +30,28 @@ const steps = {
  * A complete position of a chess game.
  */
 export default class Position {
-  turn: Color;
   board: Board;
   pieces: Pieces;
-  wc: CastlingRights;
-  bc: CastlingRights;
-  score: number;
+  turn: Color;
+  wc: CR;
+  bc: CR;
   ep: number;
   kp: number;
+  halfMoveClock: number;
+  fullMove: number
+  score: number;
 
   constructor(
-    turn: Color,
     board: Board,
     pieces: Pieces, // black...
-    wc: CastlingRights, // white castling rights
-    bc: CastlingRights, // black...
-    ep: number,
-    kp: number,
-    score: number) {
+    turn: Color,
+    wc: CR, // white castling rights
+    bc: CR, // black...
+    ep: number, // -1 if there is none
+    kp: number, // -1 if there is none
+    halfMoveClock: number,
+    fullMove: number,
+    score?: number) {
     // just copy all the parameters to fields.
     this.turn = turn;
     this.board = board;
@@ -56,7 +60,9 @@ export default class Position {
     this.bc = bc;
     this.ep = ep;
     this.kp = kp;
-    this.score = score;
+    this.halfMoveClock = halfMoveClock;
+    this.fullMove = fullMove;
+    if (score) this.score = score;
   }
 
   /**
