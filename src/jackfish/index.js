@@ -39,16 +39,20 @@ King: 'K' and 'k'
 
 /**
  * Configuration object for the engine.
- * @name Config
+ * @name Options
  * @property {string?} startPos The FEN string of the starting position.
  * @example
- * const config = {
+ * const options = {
  *   startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
  * }
  */
-export type Config = {
+export type Options = {
   startPos?: string,
-}
+};
+
+type Config = {
+  startPos: string,
+};
 
 const defaultConfig: Config = {
   startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -70,8 +74,9 @@ export default class Engine {
   history: Array<Position> = [];
   position: Position;
 
-  constructor(options?: Config) {
+  constructor(options?: Options) {
     if (options) this.configure(options);
+    this.setPos(this.config.startPos);
   }
 
   /**
@@ -82,7 +87,7 @@ export default class Engine {
    * @param options   Same type of configuration object passed to
    *                  constructor.
    */
-  configure(options: Config): void {
+  configure(options: Options): void {
     for (const key in options) this.config[key] = options[key];
   }
 
