@@ -1,5 +1,6 @@
 /**
- * A javascript chess engine inspired by [sunfish](https://github.com/thomasahle/sunfish).
+ * A javascript chess engine inspired by
+ * [sunfish](https://github.com/thomasahle/sunfish).
  * @module jackfish
  * @author Mattias Ahlsén (mattias.ahlsen@gmail.com)
  * @example
@@ -9,10 +10,10 @@
  * @flow
  */
 
-import type { Board, Piece, Pieces, CR } from './declarations';
+import type { Board, Piece, Move, CR } from './declarations';
 import { pieces, BLACK, WHITE } from './declarations';
-import { isWhite } from './helpers';
 import Position from './Position';
+import { rank, parse } from './helpers';
 
 /*
 The board is represented as an array with indexes like this:
@@ -73,6 +74,8 @@ export default class Engine {
   config: Config = defaultConfig;
   history: Array<Position> = [];
   position: Position;
+  halfMoveClock: number; // keep this here to keep Position class simpler
+  fullMove: number; // full move number we're on (starts at 1)
 
   constructor(options?: Options) {
     if (options) this.configure(options);
@@ -107,7 +110,6 @@ export default class Engine {
    */
   setPos(fen: string): boolean {
     const board: Board = [];
-    const boardPieces: Pieces = [[], []]; // 'pieces' name already taken
     let turn;
     let wc: CR = [false, false];
     let bc: CR = [false, false];
@@ -119,7 +121,7 @@ export default class Engine {
     const subs = fen.trim().split(/ +/); // get substrings
     if (subs.length !== 6) return false;
 
-    let pos = 0; // current board position
+    let pos = 0; // current board position (square)
     let i = 0; // index of string
     // The board array is indexed the same way as FEN notation.
     while (i < subs[0].length) {
@@ -127,14 +129,14 @@ export default class Engine {
       const num = parseInt(c);
       if (Number.isInteger(num) && num > 0) {
         if (num > 8 - pos % 8) return false;
+        for (let j = 0; j < num; j++) {
+          board[pos + j] = null;
+        }
         pos += num;
       } else if (pieces.includes(c)) {
         // Cast to piece when we know it is one.
         c = ((c: any): Piece)
-        board[pos] = ((c: any): Piece);
-        // add to pieces array
-        if (isWhite(c)) boardPieces[0].push({ pos, piece: c });
-        else boardPieces[1].push({ pos, piece: c });
+        board[pos] = c;
         pos++;
       } else {
         return false; // invalid FEN
@@ -172,13 +174,10 @@ export default class Engine {
     }
 
     if (subs[3] !== '-') {
-      if (subs[3].length !== 2) return false;
-      const c1 = subs[3].charCodeAt(0);
-      const c2 = subs[3].charCodeAt(1);
-      if (!(c1 >= 97 && c1 <= 104 && c2 >= 49 && c2 <= 56)) return false;
-
-      // 97 is ascii for 'a' and 49 for '1'
-      ep = c1 - 97 + 56 - (c2 - 49) * 8;
+      ep = parse(subs[3]);
+      const r = rank(ep);
+      if (isNaN(ep)) return false;
+      if (r !== 3 && r !== 6) return false;
     }
 
     halfMoveClock = parseInt(subs[4]);
@@ -187,9 +186,9 @@ export default class Engine {
     if (!(Number.isInteger(fullMove) && fullMove > 0)) return false;
 
     // if we've made it this far, we're golden
-    this.position = new Position(
-      board, boardPieces, turn, wc, bc, ep, kp, halfMoveClock, fullMove
-    );
+    this.halfMoveClock = halfMoveClock;
+    this.fullMove = fullMove;
+    this.position = new Position(board, turn, wc, bc, ep, kp);
     return true;
   }
 
@@ -203,12 +202,23 @@ export default class Engine {
 
   /**
    * Moves from position o to position t, making sure it's a valid move.
+   * Positions can be on the form 0 for A8, 7 for H8, ..., 56 for A1,
+   * 63 for H1, or simply on the form 'a1', 'b7', etc...
    * @param o Origin position.
    * @param t Target position.
    * @return True if it was a valid move.
    */
-  move(o: number, t: number): boolean {
+  move(o: number | string, t: number | string): boolean {
+    // parse() returns NaN for invalid position strings
+    if (typeof o === 'string') o = (parse(o): number);
+    if (typeof t === 'string') t = (parse(t): number);
 
+    if (this.position.valid([o, t])) {
+      this.history.push(this.position);
+      this.position = this.position.move([o, t]);
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -224,7 +234,7 @@ export default class Engine {
    * @return Returns true if there was a valid move to be made,
    *         otherwise false.
    */
-  aiMove(): boolean {
+  aiMove(): Move {
 
   }
 
@@ -239,6 +249,6 @@ export default class Engine {
    * Sets position to the starting position set in config.startingPos.
    */
   restart(): void {
-
+    this.setPos(this.config.startPos);
   }
 }

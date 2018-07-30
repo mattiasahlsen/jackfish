@@ -131,9 +131,9 @@
               
                 
                 <li><a
-                  href='#piece'
+                  href='#black'
                   class="">
-                  Piece
+                  BLACK
                   
                 </a>
                 
@@ -141,9 +141,9 @@
               
                 
                 <li><a
-                  href='#cr'
+                  href='#coldif'
                   class="">
-                  CR
+                  colDif
                   
                 </a>
                 
@@ -858,7 +858,7 @@ successfully changed.
 
  
   
-    <div class='pre p1 fill-light mt0'>aiMove(): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></div>
+    <div class='pre p1 fill-light mt0'>aiMove(): Move</div>
    
   
   
@@ -877,7 +877,7 @@ successfully changed.
   
     
       <div class='py1 quiet mt1 prose-big'>Returns</div>
-      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>:
+      <code>Move</code>:
         Returns true if there was a valid move to be made,
 otherwise false.
 
@@ -1072,8 +1072,8 @@ otherwise false.
   
   <div class='clearfix'>
     
-    <h3 class='fl m0' id='piece'>
-      Piece
+    <h3 class='fl m0' id='black'>
+      BLACK
     </h3>
     
     
@@ -1084,7 +1084,7 @@ otherwise false.
 
  
   
-    <div class='pre p1 fill-light mt0'>Piece</div>
+    <div class='pre p1 fill-light mt0'>BLACK</div>
    
   
   
@@ -1120,8 +1120,8 @@ otherwise false.
   
   <div class='clearfix'>
     
-    <h3 class='fl m0' id='cr'>
-      CR
+    <h3 class='fl m0' id='coldif'>
+      colDif
     </h3>
     
     
@@ -1132,7 +1132,7 @@ otherwise false.
 
  
   
-    <div class='pre p1 fill-light mt0'>CR</div>
+    <div class='pre p1 fill-light mt0'>colDif</div>
    
   
   
@@ -1180,7 +1180,7 @@ otherwise false.
 
  
   
-    <div class='pre p1 fill-light mt0'>new Position(board: Board, pieces: Pieces, turn: Color, wc: <a href="#cr">CR</a>, bc: <a href="#cr">CR</a>, ep: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>, kp: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>, halfMoveClock: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>, fullMove: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>, score: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>)</div>
+    <div class='pre p1 fill-light mt0'>new Position(board: Board, pieces: Pieces, turn: Color, wc: CR, bc: CR, ep: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>, kp: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>, score: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>)</div>
    
   
   
@@ -1222,7 +1222,7 @@ otherwise false.
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>wc</span> <code class='quiet'>(<a href="#cr">CR</a>)</code>
+            <span class='code bold'>wc</span> <code class='quiet'>(CR)</code>
 	    
           </div>
           
@@ -1230,7 +1230,7 @@ otherwise false.
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>bc</span> <code class='quiet'>(<a href="#cr">CR</a>)</code>
+            <span class='code bold'>bc</span> <code class='quiet'>(CR)</code>
 	    
           </div>
           
@@ -1238,7 +1238,8 @@ otherwise false.
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>ep</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>)</code>
+            <span class='code bold'>ep</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>
+            = <code>-1</code>)</code>
 	    
           </div>
           
@@ -1246,7 +1247,8 @@ otherwise false.
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>kp</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>)</code>
+            <span class='code bold'>kp</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>
+            = <code>-1</code>)</code>
 	    
           </div>
           
@@ -1254,23 +1256,8 @@ otherwise false.
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>halfMoveClock</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>)</code>
-	    
-          </div>
-          
-        </div>
-      
-        <div class='space-bottom0'>
-          <div>
-            <span class='code bold'>fullMove</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>)</code>
-	    
-          </div>
-          
-        </div>
-      
-        <div class='space-bottom0'>
-          <div>
-            <span class='code bold'>score</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>)</code>
+            <span class='code bold'>score</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>
+            = <code>0</code>)</code>
 	    
           </div>
           
@@ -1305,11 +1292,12 @@ otherwise false.
 
   
 
-  <p>Returns valid moves (including moves that result in king-take).</p>
+  <p>Returns possible moves, including moves that result in king-take and
+castles invalid because of threatened squares or check.</p>
 
  
   
-    <div class='pre p1 fill-light mt0'>geMoves(): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array">Array</a>&#x3C;Move></div>
+    <div class='pre p1 fill-light mt0'>geMoves(): Generator&#x3C;Move, void, void></div>
    
   
   
@@ -1328,7 +1316,7 @@ otherwise false.
   
     
       <div class='py1 quiet mt1 prose-big'>Returns</div>
-      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array">Array</a>&#x3C;Move></code>
+      <code>Generator&#x3C;Move, void, void></code>
     
   
 
@@ -1358,11 +1346,11 @@ otherwise false.
 
   
 
-  <p>Makes a nullmove, i.e. switches turn and negates score.</p>
+  <p>Makes a nullmove, i.e. switches turn, resets en passant and negates score.</p>
 
  
   
-    <div class='pre p1 fill-light mt0'>nullMove(): void</div>
+    <div class='pre p1 fill-light mt0'>nullMove(): <a href="#position">Position</a></div>
    
   
   
@@ -1381,7 +1369,7 @@ otherwise false.
   
     
       <div class='py1 quiet mt1 prose-big'>Returns</div>
-      <code>void</code>
+      <code><a href="#position">Position</a></code>
     
   
 

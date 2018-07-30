@@ -13,11 +13,14 @@ export const pieces = [
 export type Color = 0 | 1;
 // ' ' means no piece
 export type Piece = 'P' | 'N' | 'B' | 'R' | 'Q' | 'K' |
-                    'p' | 'n' | 'b' | 'r' | 'q' | 'k' | ' ';
-export type PieceObj = {| pos: number, piece: Piece |};
+                    'p' | 'n' | 'b' | 'r' | 'q' | 'k';
 // [white, black], piece objects may be any order
-export type Pieces = [Array<PieceObj>, Array<PieceObj>];
-export type Board = Array<Piece>;
+// must have no empty elements
+export type Board = Array<Piece | null>;
 
 export type Move = [number, number]; // [from, to]
-export type CR = [boolean, boolean]; // castling rights [kingside, queenside]
+export type CR = [boolean, boolean]; // castling rights [queenside, kingside]
+
+// used for testing
+export type PieceObj = {| pos: number, piece: Piece |};
+export type Pieces = Array<PieceObj>;

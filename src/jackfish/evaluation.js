@@ -90,7 +90,7 @@ export const pstRaw = {
 
 // Join psts with piece values into a final pst, and add mirrored tables
 // for black pieces
-export const pst = {};
+export const pst: any = {};
 for (const key in pstRaw) {
   const bKey = key.toLowerCase(); // corresponding black piece key
   pst[key] = [];
@@ -107,8 +107,8 @@ for (const key in pstRaw) {
 export default function evaluate(board: Board): number {
   let value = 0;
   for (let i = 0; i < 64; i++) {
-    const piece: Piece = board[i];
-    if (piece !== ' ') {
+    if (board[i]) {
+      const piece: Piece = board[i];
       if (isWhite(piece)) value += pst[piece][i];
       else value -= pst[piece][i];
     }

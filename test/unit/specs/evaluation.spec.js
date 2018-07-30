@@ -1,4 +1,5 @@
 import { piece, pst, pstRaw } from '@/jackfish/evaluation';
+import Jackfish from '@/jackfish';
 import Position from '@/jackfish/Position';
 
 describe('pst', () => {
@@ -39,4 +40,6 @@ describe('pst', () => {
 });
 
 test('evaluation', () => {
+  const engine = new Jackfish();
+  expect(engine.position.score).toBe(0);
 })
