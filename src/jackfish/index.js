@@ -42,9 +42,13 @@ King: 'K' and 'k'
  * Configuration object for the engine.
  * @name Options
  * @property {string?} startPos The FEN string of the starting position.
+ * @property {boolean?} fiftyMoveRule Use the fifty-move rule.
+ * @property {boolean?} threefoldRepetition Use the threefold repetition rule.
  * @example
  * const options = {
  *   startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+     fiftyMoveRule: true,
+     threefoldRepetition: true,
  * }
  */
 export type Options = {
@@ -57,6 +61,8 @@ type Config = {
 
 const defaultConfig: Config = {
   startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+  fiftyMoveRule: true,
+  threefoldRepetition: true,
 };
 
 /**
@@ -66,7 +72,11 @@ const defaultConfig: Config = {
  * @param options Configuration object.
  * @param {string}
  * [options.startPos='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']
- * Starting position. Defaults to standard starting position.
+ * See {@link Options}.
+ * @param {boolean}
+ * [options.fiftyMoveRule='true']
+ * @param {boolean}
+ * [options.threefoldRepetition=true]
  *
  * @return {Engine}
  */
