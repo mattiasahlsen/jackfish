@@ -260,13 +260,14 @@ export default class Position {
       if (move[0] === el.value[0] && move[1] === el.value[1]) {
         const nextPos = this.move(move);
         const nextMoves = nextPos.genMoves();
-        const nextEl = nextMoves.next();
+        let nextEl = nextMoves.next();
         while (!nextEl.done) {
           // check if the move was an invalid castle
           if (Math.abs(nextEl.value[1] - nextPos.kp) < 2) return false;
           // check if the move results in king being taken
           const tp = nextPos.board[nextEl.value[1]];
           if (tp !== null && 'Kk'.includes(tp)) return false;
+          nextEl = nextMoves.next();
         }
         // if it passed all the tests, return true
         return true;

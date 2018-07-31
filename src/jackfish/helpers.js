@@ -54,3 +54,14 @@ export function parse(s: string) {
   // 97 is ascii for 'a' and 49 for '1'
   return file - 97 + 56 - (rank - 49) * 8;
 }
+
+/**
+ * Parses a position on number form to from 'f5'.
+ * Assumes pos >= 0 && pos <= 63.
+ * @return The string, or null if the number was invalid.
+ */
+export function squareToString(pos: number): string {
+  const file: string = String.fromCharCode(pos % 8 + 97);
+  const r: string = rank(pos).toString();
+  return file.concat(r);
+}

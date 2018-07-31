@@ -13,7 +13,7 @@
 import type { Board, Piece, Move, CR } from './declarations';
 import { pieces, BLACK, WHITE } from './declarations';
 import Position from './Position';
-import { rank, parse } from './helpers';
+import { rank, parse, squareToString } from './helpers';
 
 /*
 The board is represented as an array with indexes like this:
@@ -163,10 +163,10 @@ export default class Engine {
         const c = subs[2].charAt(i);
         if (used.includes(c)) return false; // may only occur once
         switch (c) {
-          case 'K': wc[0] = true; break; // breaks out of switch
-          case 'Q': wc[1] = true; break;
-          case 'k': bc[0] = true; break;
+          case 'Q': wc[0] = true; break;
+          case 'K': wc[1] = true; break;
           case 'q': bc[1] = true; break;
+          case 'k': bc[0] = true; break;
           default: return false;
         }
         used.push(c);
@@ -197,7 +197,52 @@ export default class Engine {
    * @return The FEN string.
    */
   fen(): string {
+    const pos = this.position;
+    const board = pos.board;
+    let fen = '';
+    let spaces = 0;
+    for (let i = 0; i < 64; i++) {
+      if (board[i] === null) spaces++;
+      else {
+        if (spaces > 0) {
+          fen += spaces;
+          spaces = 0;
+        }
+        fen += board[i];
+      }
+      if (i % 8 === 7) {
+        if (spaces > 0) {
+          fen += spaces;
+          spaces = 0;
+        }
+        if (i < 63) fen += '/';
+      }
+    }
 
+    fen += ' ';
+    if (pos.turn === WHITE) fen += 'w';
+    else fen += 'b';
+
+    fen += ' ';
+    if (!pos.wc[0] && !pos.wc[1] && !pos.bc[0] && !pos.bc[1]) fen += '-';
+    else {
+      if (pos.wc[1]) fen += 'K';
+      if (pos.wc[0]) fen += 'Q';
+      if (pos.bc[1]) fen += 'k';
+      if (pos.bc[0]) fen += 'q';
+    }
+
+    fen += ' ';
+    if (pos.ep !== -1) fen += squareToString(pos.ep);
+    else fen += '-';
+
+    fen += ' ';
+    fen += this.halfMoveClock;
+
+    fen += ' ';
+    fen += this.fullMove;
+
+    return fen;
   }
 
   /**
@@ -213,9 +258,15 @@ export default class Engine {
     if (typeof o === 'string') o = (parse(o): number);
     if (typeof t === 'string') t = (parse(t): number);
 
-    if (this.position.valid([o, t])) {
+    const pos = this.position;
+    if (pos.valid([o, t])) {
+      if ('Pp'.includes((pos.board[o]: any)) || pos.board[t] !== null) {
+        this.halfMoveClock = 0;
+      } else this.halfMoveClock += 1;
+
       this.history.push(this.position);
       this.position = this.position.move([o, t]);
+      if (this.position.turn === WHITE) this.fullMove += 1;
       return true;
     }
     return false;

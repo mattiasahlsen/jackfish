@@ -10,27 +10,34 @@
 import $ from 'jquery';
 window.$ = window.jquery = $;
 
-/* eslint-disable */ // import statements after non-import statements
-
 // Images for the chess board are copied to /static/img
 import Chessboard from 'chessboardjs';
 import 'chessboardjs/www/css/chessboard.css';
 
-import jackfish from '@/jackfish';
-
-/* eslint-enable */
+import Engine from '@/jackfish';
+import { WHITE, BLACK } from '@/jackfish/declarations';
 
 export default {
   name: 'Home',
   data () {
     return {
+      game: new Engine(),
     };
   },
 
   mounted () {
+    const onDragStart = (src, piece) =>
+      (piece.charAt(0) === 'w' ? WHITE : BLACK) === this.game.position.turn;
+
+    const onDrop = (src, target) => {
+      if (!this.game.move(src, target)) return 'snapback';
+      else (this.board.position(this.game.fen(), false));
+    }
     this.board = Chessboard('board', {
       position: 'start',
       draggable: true,
+      onDrop,
+      onDragStart,
     });
   },
 }
