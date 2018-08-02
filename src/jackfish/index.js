@@ -274,11 +274,18 @@ export default class Engine {
    */
   move(o: Square, t: Square, promo?: Piece): boolean {
     // parse() returns NaN for invalid position strings
-    if (typeof o === 'string') o = (parse(o): number);
-    if (typeof t === 'string') t = (parse(t): number);
+    o = (parse(o): number);
+    t = (parse(t): number);
+
+    // check that promotion piece is valid if there is one
+    if (promo) {
+      if (this.position.turn === WHITE) {
+        if (!'QNRB'.includes(promo)) return false;
+      } else if (!'qnrb'.includes(promo)) return false;
+    }
 
     const pos = this.position;
-    if (pos.valid([o, t])) {
+    if (this.valid(o, t)) {
       if ('Pp'.includes((pos.board[o]: any)) || pos.board[t] !== null) {
         this.halfMoveClock = 0;
       } else this.halfMoveClock += 1;
@@ -382,10 +389,12 @@ export default class Engine {
     return moves;
   }
 
-  /** Returns true if a move is valid */
+  /**
+   * Returns true if a move is valid.
+   */
   valid(o: Square, t: Square): boolean {
-    if (typeof o === 'string') o = parse(o);
-    if (typeof t === 'string') t = parse(t);
+    o = parse(o);
+    t = parse(t);
 
     return this.position.valid([o, t]);
   }

@@ -36,10 +36,12 @@ export function rank(p: number): number {
 }
 
 /**
- * Parses a position on form 'f5'.
+ * Parses a position on form 'f5'. If it's already a number, returns the
+ * number.
  * @return The corresponding number, or NaN if the string was invalid.
  */
-export function parse(s: string) {
+export function parse(s: string | number) {
+  if (typeof s === 'number') return s;
   if (s.length !== 2) return NaN;
 
   s = s.toLowerCase();

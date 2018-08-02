@@ -141,3 +141,43 @@ describe('winner()', () => {
     expect(game.winner()).toBe('draw');
   });
 });
+
+describe('move, moves, and valid', () => {
+  const game = new Engine();
+
+  test('move and valid', () => {
+    // just a random invalid move with no piece on origin square
+    expect(game.valid('c5', 'c6')).toBe(false);
+    expect(game.move('c5', 'c6')).toBe(false);
+
+    expect(game.valid('e2', 'e4')).toBe(true);
+    // the promotion piece shouldn't matter
+    expect(game.move('e2', 'e4', 'Q')).toBe(true);
+
+    expect(game.valid('c2', 'c4')).toBe(false); // wrong turn
+    expect(game.move('c2', 'c4')).toBe(false); // wrong turn
+
+    expect(game.move('a8', 'a6')).toBe(false);
+    expect(game.move('b8', 'c6')).toBe(true);
+
+    // pawn promotion
+    game.setPos('rnbqkbnr/pP3ppp/4p3/3p4/8/8/PPP1PPPP/RNBQKBNR w KQkq - 0 5');
+    expect(game.move('b7', 'a8')).toBe(true); // default promotion to queen
+
+    game.setPos('rnbqkbnr/pP3ppp/4p3/3p4/8/8/PPP1PPPP/RNBQKBNR w KQkq - 0 5');
+    expect(game.move('b7', 'a8', 'N')).toBe(true);
+
+    game.setPos('rnbqkbnr/pP3ppp/4p3/3p4/8/8/PPP1PPPP/RNBQKBNR w KQkq - 0 5');
+    // wrong color of promotion piece
+    expect(game.move('b7', 'a8', 'n')).toBe(false);
+
+    game.setPos('rnbqkbnr/pP3ppp/4p3/3p4/8/8/PPP1PPPP/RNBQKBNR w KQkq - 0 5');
+    // invalid promotion piece
+    expect(game.move('b7', 'a8', 'K')).toBe(false);
+  });
+
+  test('moves', () => {
+    game.restart();
+    expect(game.moves().length).toBe(20); // very simple test...
+  });
+});

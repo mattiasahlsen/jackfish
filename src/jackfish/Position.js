@@ -3,7 +3,7 @@
  * @flow
  */
 
-import { isColor, isWhite, sameColor, next, colDif, rowDif } from './helpers';
+import { isColor, sameColor, next, colDif, rowDif } from './helpers';
 import evaluate, { pst } from './evaluation';
 import { WHITE, BLACK } from './declarations';
 import type { Color, Board, Piece, Move, CR } from './declarations';
@@ -76,7 +76,9 @@ export default class Position {
 
   /**
    * Returns possible moves for color, including moves that result in king-take
-   * and castles invalid because of threatened squares or check.
+   * and castles invalid because of threatened squares or check. For pawn
+   * promotions, it will only generate one move without the promotion piece.
+   * You must later add the promotion piece for the move to be valid.
    * @param [color=this.turn] The color to look for moves for.
    */
   *genMoves(color?: Color = this.turn): Generator<Move, void, void> {
@@ -86,7 +88,7 @@ export default class Position {
 
       // check for castling
       if (piece.toUpperCase() === 'K') {
-        const rights = isWhite(piece) ? this.wc : this.bc;
+        const rights = color === WHITE ? this.wc : this.bc;
         if (rights[0] && this.board[i - 1] === null &&
           this.board[i - 2] === null) yield ([i, i - 2]: Move);
         if (rights[1] && this.board[i + 1] === null &&
@@ -140,7 +142,7 @@ export default class Position {
    * position. Assumes that the move is valid.
    * @param move  The move
    * @param promo If there is a promotion of a pawn, this is the piece to
-   *              replace it with
+   *              replace it with. Default to Queen.
    * @return      The new position.
    */
   move(move: Move, promo?: Piece): Position {
@@ -149,6 +151,10 @@ export default class Position {
     // it's assumed that there is a piece at the origin position,
     // toUpperCase() makes it generic because color doesn't matter
     const op: Piece = (this.board[o]: any);
+    if (!promo) {
+      if (this.turn === WHITE) promo = 'Q'; // default promotion piece
+      else promo = 'q';
+    }
 
     const board = this.board.slice(); // copy board
     let wc: CR = (this.wc.slice(): any); // copy castling rights
@@ -252,15 +258,15 @@ export default class Position {
   }
 
   /**
-   * Checks if a move is valid.
+   * Checks if a move is valid, not taking into account promotion piece argument
+   * on pawn promotion.
    */
   valid(move: Move): boolean {
     const moves = this.genMoves(); // generator
     let el = moves.next();
     while (!el.done) {
       if (move[0] === el.value[0] && move[1] === el.value[1]) {
-        const promo = this.turn === WHITE ? 'Q' : 'q'; // always move with promo
-        const nextPos = this.move(move, promo);
+        const nextPos = this.move(move);
         const nextMoves = nextPos.genMoves();
         let nextEl = nextMoves.next();
         while (!nextEl.done) {
