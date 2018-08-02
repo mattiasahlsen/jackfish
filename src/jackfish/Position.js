@@ -286,4 +286,17 @@ export default class Position {
     }
     return false;
   }
+
+  /** Returns true if side to move is in check. */
+  inCheck(): boolean {
+    // generate moves for other color
+    const moves = this.genMoves(next(this.turn));
+    let el = moves.next();
+    while (!el.done) {
+      const tp = this.board[el.value[1]]; // target piece
+      if (tp && 'Kk'.includes(tp)) return true;
+      el = moves.next();
+    }
+    return false;
+  }
 }

@@ -316,15 +316,6 @@ export default class Engine {
   }
 
   /**
-   * Let the AI make a move.
-   * @return Returns true if there was a valid move to be made,
-   *         otherwise false.
-   */
-  aiMove(): Move {
-
-  }
-
-  /**
    * Get winner if there is one.
    */
   winner(): 'white' | 'black' | 'draw' | null {
@@ -359,31 +350,18 @@ export default class Engine {
     return false;
   }
 
-  /** Returns true if side to move is in check. */
-  inCheck(): boolean {
-    // generate moves for other color
-    const moves = this.position.genMoves(next(this.position.turn));
-    let el = moves.next();
-    while (!el.done) {
-      const tp = this.position.board[el.value[1]]; // target piece
-      if (tp && 'Kk'.includes(tp)) return true;
-      el = moves.next();
-    }
-    return false;
-  }
-
   /**
    * Check if side to move is in checkmate.
    */
   inCheckMate(): boolean {
-    return this.moves().length === 0 && this.inCheck();
+    return this.moves().length === 0 && this.position.inCheck();
   }
 
   /**
    * Check if in stalemate.
    */
   inStaleMate(): boolean {
-    return this.moves().length === 0 && !this.inCheck();
+    return this.moves().length === 0 && !this.position.inCheck();
   }
 
   /** Returns an array of valid moves. */
@@ -414,5 +392,14 @@ export default class Engine {
    */
   restart(): void {
     this.setPos(this.config.startPos);
+  }
+
+  /**
+   * Let the AI make a move.
+   * @return Returns true if there was a valid move to be made,
+   *         otherwise false.
+   */
+  aiMove(): Move {
+
   }
 }
