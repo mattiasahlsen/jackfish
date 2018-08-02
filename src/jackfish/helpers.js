@@ -4,7 +4,7 @@
  */
 
 import { WHITE, BLACK } from './declarations';
-import type { Piece, Color } from './declarations';
+import type { Piece, Color, Board } from './declarations';
 
 export function isWhite(piece: Piece): boolean {
   return piece.charAt(0) === piece.charAt(0).toUpperCase();
@@ -31,7 +31,7 @@ export function colDif(p1: number, p2: number): number {
   return Math.abs(p1 % 8 - p2 % 8);
 }
 
-export function rank(p: number) {
+export function rank(p: number): number {
   return 8 - Math.floor(p / 8)
 }
 
@@ -64,4 +64,11 @@ export function squareToString(pos: number): string {
   const file: string = String.fromCharCode(pos % 8 + 97);
   const r: string = rank(pos).toString();
   return file.concat(r);
+}
+
+export function equalBoards (b1: Board, b2: Board) {
+  for (let i = 0; i < 64; i++) {
+    if (b1[i] !== b2[i]) return false;
+  }
+  return true;
 }

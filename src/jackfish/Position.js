@@ -5,7 +5,7 @@
 
 import { isColor, isWhite, sameColor, next, colDif, rowDif } from './helpers';
 import evaluate, { pst } from './evaluation';
-import { BLACK } from './declarations';
+import { WHITE, BLACK } from './declarations';
 import type { Color, Board, Piece, Move, CR } from './declarations';
 
 // some squares
@@ -75,13 +75,14 @@ export default class Position {
   }
 
   /**
-   * Returns possible moves, including moves that result in king-take and
-   * castles invalid because of threatened squares or check.
+   * Returns possible moves for color, including moves that result in king-take
+   * and castles invalid because of threatened squares or check.
+   * @param [color=this.turn] The color to look for moves for.
    */
-  *genMoves(): Generator<Move, void, void> {
+  *genMoves(color?: Color = this.turn): Generator<Move, void, void> {
     for (let i = 0; i < this.board.length; i++) {
       const piece = this.board[i];
-      if (piece === null || !isColor(piece, this.turn)) continue;
+      if (piece === null || !isColor(piece, color)) continue;
 
       // check for castling
       if (piece.toUpperCase() === 'K') {
@@ -154,7 +155,7 @@ export default class Position {
     let bc: CR = (this.bc.slice(): any);
     let ep = -1; // default
     let kp = -1;
-    const score = this.score + this.value(move);
+    const score = this.score + this.value(move, promo);
 
     // make the move
     board[t] = board[o];
@@ -258,12 +259,15 @@ export default class Position {
     let el = moves.next();
     while (!el.done) {
       if (move[0] === el.value[0] && move[1] === el.value[1]) {
-        const nextPos = this.move(move);
+        const promo = this.turn === WHITE ? 'Q' : 'q'; // always move with promo
+        const nextPos = this.move(move, promo);
         const nextMoves = nextPos.genMoves();
         let nextEl = nextMoves.next();
         while (!nextEl.done) {
           // check if the move was an invalid castle
-          if (Math.abs(nextEl.value[1] - nextPos.kp) < 2) return false;
+          if (nextPos.kp !== -1 && Math.abs(nextEl.value[1] - nextPos.kp) < 2) {
+            return false;
+          }
           // check if the move results in king being taken
           const tp = nextPos.board[nextEl.value[1]];
           if (tp !== null && 'Kk'.includes(tp)) return false;

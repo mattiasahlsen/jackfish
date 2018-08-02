@@ -1,6 +1,7 @@
 /**
  * A javascript chess engine inspired by
- * [sunfish](https://github.com/thomasahle/sunfish).
+ * [sunfish](https://github.com/thomasahle/sunfish) and
+ * [chess.js](https://github.com/jhlywa/chess.js).
  * @module jackfish
  * @author Mattias Ahlsén (mattias.ahlsen@gmail.com)
  * @example
@@ -10,10 +11,12 @@
  * @flow
  */
 
+type Square = number | string;
+
 import type { Board, Piece, Move, CR } from './declarations';
 import { pieces, BLACK, WHITE } from './declarations';
 import Position from './Position';
-import { rank, parse, squareToString } from './helpers';
+import { rank, parse, squareToString, next, equalBoards } from './helpers';
 
 /*
 The board is represented as an array with indexes like this:
@@ -48,15 +51,19 @@ King: 'K' and 'k'
  * const options = {
  *   startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
      fiftyMoveRule: true,
-     threefoldRepetition: true,
+     inThreefoldRepetition: true,
  * }
  */
 export type Options = {
   startPos?: string,
+  fiftyMoveRule?: boolean,
+  threefoldRepetition?: boolean,
 };
 
 type Config = {
   startPos: string,
+  fiftyMoveRule: boolean,
+  threefoldRepetition: boolean,
 };
 
 const defaultConfig: Config = {
@@ -74,7 +81,7 @@ const defaultConfig: Config = {
  * [options.startPos='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']
  * See {@link Options}.
  * @param {boolean}
- * [options.fiftyMoveRule='true']
+ * [options.fiftyMoveRule=true]
  * @param {boolean}
  * [options.threefoldRepetition=true]
  *
@@ -82,7 +89,7 @@ const defaultConfig: Config = {
  */
 export default class Engine {
   config: Config = defaultConfig;
-  history: Array<Position> = [];
+  history: Array<{fen: string, move: Move}> = [];
   position: Position;
   halfMoveClock: number; // keep this here to keep Position class simpler
   fullMove: number; // full move number we're on (starts at 1)
@@ -101,7 +108,9 @@ export default class Engine {
    *                  constructor.
    */
   configure(options: Options): void {
-    for (const key in options) this.config[key] = options[key];
+    for (const key in options) {
+      this.config[key] = options[key];
+    }
   }
 
   /**
@@ -263,7 +272,7 @@ export default class Engine {
    * @param t Target position.
    * @return True if it was a valid move.
    */
-  move(o: number | string, t: number | string): boolean {
+  move(o: Square, t: Square, promo?: Piece): boolean {
     // parse() returns NaN for invalid position strings
     if (typeof o === 'string') o = (parse(o): number);
     if (typeof t === 'string') t = (parse(t): number);
@@ -274,8 +283,8 @@ export default class Engine {
         this.halfMoveClock = 0;
       } else this.halfMoveClock += 1;
 
-      this.history.push(this.position);
-      this.position = this.position.move([o, t]);
+      this.history.push({fen: this.fen(), move: [o, t]});
+      this.position = this.position.move([o, t], promo);
       if (this.position.turn === WHITE) this.fullMove += 1;
       return true;
     }
@@ -302,12 +311,88 @@ export default class Engine {
   /**
    * Get winner if there is one.
    */
-  winner(): "white" | "black" | "tie" | null {
+  winner(): 'white' | 'black' | 'draw' | null {
+    if (this.inCheckMate()) {
+      if (this.position.turn === WHITE) return 'black';
+      else return 'white';
+    }
 
+    if ((this.config.fiftyMoveRule && this.fiftyMoves()) ||
+      (this.config.threefoldRepetition && this.inThreefoldRepetition()) ||
+      (this.inStaleMate())) return 'draw'
+
+    return null;
+  }
+
+  /** Returns true if in draw according to fifty move rule. */
+  fiftyMoves(): boolean {
+    return this.halfMoveClock >= 50;
+  }
+
+  /** Returns true if the current board position has ocurred 3 or more times. */
+  inThreefoldRepetition(): boolean {
+    let count = 1; // starts at 1 because current position is 1 occurence
+    for (let i = 0; i < this.history.length; i++) {
+      const game = new Engine();
+      game.setPos(this.history[i].fen);
+      if (equalBoards(game.position.board, this.position.board)) {
+        count++;
+        if (count === 3) return true;
+      }
+    }
+    return false;
+  }
+
+  /** Returns true if side to move is in check. */
+  inCheck(): boolean {
+    // generate moves for other color
+    const moves = this.position.genMoves(next(this.position.turn));
+    let el = moves.next();
+    while (!el.done) {
+      const tp = this.position.board[el.value[1]]; // target piece
+      if (tp && 'Kk'.includes(tp)) return true;
+      el = moves.next();
+    }
+    return false;
   }
 
   /**
-   * Sets position to the starting position set in config.startingPos.
+   * Check if side to move is in checkmate.
+   */
+  inCheckMate(): boolean {
+    return this.moves().length === 0 && this.inCheck();
+  }
+
+  /**
+   * Check if in stalemate.
+   */
+  inStaleMate(): boolean {
+    return this.moves().length === 0 && !this.inCheck();
+  }
+
+  /** Returns an array of valid moves. */
+  moves(): Array<Move> {
+    const moves = [];
+    const generator = this.position.genMoves(); // move generator
+    let el = generator.next();
+    while (!el.done) {
+      if (this.position.valid(el.value)) moves.push(el.value);
+      el = generator.next();
+    }
+    return moves;
+  }
+
+  /** Returns true if a move is valid */
+  valid(o: Square, t: Square): boolean {
+    if (typeof o === 'string') o = parse(o);
+    if (typeof t === 'string') t = parse(t);
+
+    return this.position.valid([o, t]);
+  }
+
+  /**
+   * Sets position to the starting position set in config.startingPos (default
+   * is normal starting position).
    */
   restart(): void {
     this.setPos(this.config.startPos);

@@ -97,3 +97,47 @@ test('fen', () => {
     expect(game.fen()).toBe(e);
   })
 })
+
+// test that end of game works correctly
+describe('winner()', () => {
+  const game = new Engine();
+
+  test('stalemate', () => {
+    game.setPos('8/6b1/8/8/8/n7/PP6/K7 w - - 0 1');
+    expect(game.inStaleMate()).toBe(true);
+    expect(game.winner()).toBe('draw');
+  });
+
+  test('fiftyMoveRule', () => {
+    game.setPos(
+      'r1bqkbnr/pppp1ppp/2n5/4p3/3P4/2N5/PPP1PPPP/R1BQKBNR w KQkq - 50 49'
+    );
+    expect(game.fiftyMoves()).toBe(true);
+    expect(game.winner()).toBe('draw');
+    game.setPos(
+      'r1bqkbnr/pppp1ppp/2n5/4p3/3P4/2N5/PPP1PPPP/R1BQKBNR w KQkq - 52 51'
+    );
+    expect(game.fiftyMoves()).toBe(true);
+    expect(game.winner()).toBe('draw');
+  });
+
+  test('threefoldRepetition', () => {
+    game.restart();
+    expect(game.fen()).toBe(startingPosition); // throw that in there
+
+    expect(game.move('e2', 'e4')).toBe(true);
+    expect(game.move('e7', 'e5')).toBe(true);
+
+    const repeat = () => {
+      expect(game.move('b1', 'c3')).toBe(true);
+      expect(game.move('b8', 'c6')).toBe(true);
+      expect(game.move('c3', 'b1')).toBe(true);
+      expect(game.move('c6', 'b8')).toBe(true);
+    };
+    repeat(); // now been that the same position twice
+    repeat(); // now three times
+
+    expect(game.inThreefoldRepetition()).toBe(true);
+    expect(game.winner()).toBe('draw');
+  });
+});

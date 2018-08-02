@@ -2,6 +2,7 @@
 
 import Engine from '@/jackfish';
 import Position from '@/jackfish/Position';
+import { equalBoards } from '@/jackfish/helpers';
 
 test('genMoves', () => {
   const countMoves = (moves) => {
@@ -27,12 +28,6 @@ test('genMoves', () => {
 });
 
 test('move', () => {
-  const equalBoards = (b1, b2) => {
-    for (let i = 0; i < 64; i++) {
-      if (b1[i] !== b2[i]) return false;
-    }
-    return true;
-  }
   const equalPositions = (p1: Position, p2: Position) => {
     return equalBoards(p1.board, p2.board) && p1.turn === p2.turn &&
       p1.wc[0] === p2.wc[0] && p1.wc[1] === p2.wc[1] &&
