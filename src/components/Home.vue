@@ -11,6 +11,10 @@
       <h3 v-else :style="{ visibility: 'hidden' }">
         Game is still running.
       </h3>
+
+      <button type="button" class="btn btn-light" @click="undoMove">
+        Undo move
+      </button>
     </div>
 
     <Promotion v-if="promotion" :pos="promotion.pos" :board="$refs.board"
@@ -23,9 +27,6 @@
 
 <script>
 import Promotion from './Promotion';
-
-import $ from 'jquery';
-window.$ = window.jquery = $;
 
 // Images for the chess board are copied to /static/img
 import Chessboard from 'chessboardjs';
@@ -50,11 +51,16 @@ export default {
       winner: game.winner(),
     };
   },
-
+  watch: {
+    'game.position.board': function() {
+      this.board.position(this.game.fen(), false);
+      this.winner = this.game.winner();
+    }
+  },
   mounted () {
     const onDragStart = (src, piece) => {
       return (piece.charAt(0) === 'w' ? WHITE : BLACK) === this.game.position.turn &&
-      this.game.winner() === null;
+      this.winner === null;
     }
 
     const onDrop = (src, target, piece) => {
@@ -75,8 +81,6 @@ export default {
       }
 
       this.game.move(src, target); // we already know it's valid
-      this.board.position(this.game.fen(), false);
-      this.winner = this.game.winner();
     }
 
     this.board = Chessboard('board', {
@@ -93,15 +97,16 @@ export default {
         this.promotion.target,
         piece
       );
-      this.board.position(this.game.fen(), false);
       this.promotion = null;
-      this.winner = this.game.winner();
     },
     cancel() {
       // cancel pawn promotion primarily
       this.promotion = null;
       this.board.position(this.game.fen(), false);
-    }
+    },
+    undoMove() {
+      this.game.undoMove();
+    },
   },
 }
 </script>

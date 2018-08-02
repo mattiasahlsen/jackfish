@@ -181,3 +181,22 @@ describe('move, moves, and valid', () => {
     expect(game.moves().length).toBe(20); // very simple test...
   });
 });
+
+test('undoMove', () => {
+  const game = new Engine();
+  expect(game.undoMove()).toBe(null);
+
+  let before = game.fen();
+  game.move('e2', 'e4');
+
+  let move = game.undoMove();
+  // 'e2' is square 52 and 'e4' is square 36
+  expect(move !== null && move[0] === 52 && move[1] === 36).toBe(true);
+  expect(before).toBe(game.fen());
+  expect(game.history.length).toBe(0);
+
+  game.move('e2', 'e4');
+  expect(game.history.length).toBe(1);
+  game.restart();
+  expect(game.history.length).toBe(0);
+})

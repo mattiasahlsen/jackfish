@@ -208,6 +208,7 @@ export default class Engine {
     this.halfMoveClock = halfMoveClock;
     this.fullMove = fullMove;
     this.position = new Position(board, turn, wc, bc, ep, kp);
+    this.history = [];
     return true;
   }
 
@@ -300,10 +301,18 @@ export default class Engine {
 
   /**
    * Undoes the latest move if there is one.
-   * @return True if there was a move to be undone.
+   * @return The move that was undone on the form [origin, target] or null if
+   * there were no previous moves.
    */
-  undoMove(): boolean {
-
+  undoMove(): Move | null {
+    const history = this.history; // save this, setPos() clears it
+    const last = history.pop();
+    if (last) {
+      this.setPos(last.fen);
+      this.history = history; // need to set this because setPos() clears it
+      return last.move;
+    }
+    return null;
   }
 
   /**
