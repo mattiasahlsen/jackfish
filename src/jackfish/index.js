@@ -16,7 +16,7 @@ type Square = number | string;
 import type { Board, Piece, Move, CR } from './declarations';
 import { pieces, BLACK, WHITE } from './declarations';
 import Position from './Position';
-import { rank, parse, squareToString, next, equalBoards } from './helpers';
+import { rank, parse, squareToString, equalBoards } from './helpers';
 
 /*
 The board is represented as an array with indexes like this:
