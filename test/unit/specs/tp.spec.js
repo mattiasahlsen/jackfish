@@ -4,7 +4,7 @@
  */
 
 import Engine from '@/jackfish';
-import { rand, hashes, hash, Cache, LRU, make } from '@/jackfish/tp';
+import { rand, hashes, hash, Cwf, Lru, randoms } from '@/jackfish/tp';
 
 describe('hashing', () => {
   // helper
@@ -43,31 +43,31 @@ describe('hashing', () => {
 
 describe('caches', () => {
   test('simple cache', () => {
-    const cache = new Cache(5);
+    const cache = new Cwf(5);
     for (let i = 1; i <= 5; i++) {
-      const hash = make();
+      const hash = randoms();
       cache.add(hash, i);
       expect(cache.get(hash)).toBe(i);
       expect(cache.size()).toBe(i);
     }
-    const hash = make();
+    const hash = randoms();
     cache.add(hash, 10);
     expect(cache.size()).toBe(1);
     expect(cache.get(hash)).toBe(10);
   });
 
   test('LRU', () => {
-    const cache = new LRU(5);
+    const cache = new Lru(5);
     const hashes = [];
     for (let i = 1; i <= 5; i++) {
-      const hash = make();
+      const hash = randoms();
       hashes.push(hash);
       cache.add(hash, i);
       expect(cache.get(hash)).toBe(i);
       expect(cache.size()).toBe(i);
     }
     for (let i = 6; i <= 10; i++) {
-      const hash = make();
+      const hash = randoms();
       hashes.push(hash);
       cache.add(hash, 7);
     }

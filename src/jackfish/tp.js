@@ -27,26 +27,26 @@ export function rand() {
 }
 
 // Makes a hash tuple with low and high
-export const make = () => [rand(), rand()];
+export const randoms = () => [rand(), rand()];
 
 // initialize hashes array
 export const hashes = {};
 pieces.forEach(p => {
   hashes[p] = [];
   for (let i = 0; i < 64; i++) {
-    hashes[p].push(make()); // [low, high]
+    hashes[p].push(randoms()); // [low, high]
   }
 
   hashes.turn = [];
-  hashes.turn[WHITE] = make();
-  hashes.turn[BLACK] = make();
+  hashes.turn[WHITE] = randoms();
+  hashes.turn[BLACK] = randoms();
 
-  hashes.wc = [make(), make()]; // [queenside, kingside]
-  hashes.bc = [make(), make()];
+  hashes.wc = [randoms(), randoms()]; // [queenside, kingside]
+  hashes.bc = [randoms(), randoms()];
 
   hashes.epFile = [];
   for (let i = 0; i < 8; i++) {
-    hashes.epFile.push(make()); // [A, B, C...]
+    hashes.epFile.push(randoms()); // [A, B, C...]
   }
 });
 
@@ -81,7 +81,7 @@ export function hash(pos: Position): [number, number] {
 type Entry = Move | number; // move or score
 
 // LRU cache, first in first out, size > 0
-export class LRU {
+export class Lru {
   map: Map<number, Array<Entry>> = new Map();
   // max number of keys in map (not max number of entries since there can be
   // many entries in an array at one key)
@@ -132,10 +132,19 @@ export class LRU {
       this.map.delete(this.map.keys().next().value);
     }
   }
+
+  clear() {
+    this.map.clear();
+  }
+
+  setSize(maxSize: number) {
+    this.maxSize = maxSize;
+  }
 }
 
-// A simpler cache, has a max size but just resets when it's reached
-export class Cache {
+// A simpler clear-when-full cache,
+// has a max size but just resets when it's reached
+export class Cwf {
   cache: Array<Array<Entry>> = [];
   maxSize: number;
   currentSize: number = 0;
