@@ -24,13 +24,16 @@ describe('hashing', () => {
 
     const r1 = rand();
     const r2 = rand();
+    const r3 = rand();
     // XORing with the same number two times should leave a number unchanged
-    expect(r1).toBe((r1 ^ r2) ^ r2);
+    expect(r1).toBe(r1 ^ r2 ^ r2);
+    expect(r1).toBe(r1 ^ r2 ^ r3 ^ r2 ^ r3);
   });
 
   test('hashes', () => {
     for (const key in hashes) {
-      hashes[key].forEach((e) => checkBoth(e));
+      if (key === 'turn') checkBoth(hashes[key]);
+      else hashes[(key: any)].forEach((e) => checkBoth(e));
     }
   });
 

@@ -5,8 +5,10 @@
 
 import { isColor, sameColor, next, colDif, rowDif } from './helpers';
 import evaluate, { pst } from './evaluation';
-import { WHITE, BLACK } from './declarations';
-import type { Color, Board, Piece, Move, CR } from './declarations';
+import { WHITE } from './declarations';
+import { hash, hashes } from './tp';
+
+import type { Color, Board, Piece, Move, CR, Hash } from './declarations';
 
 // some squares
 const A1 = 56;
@@ -51,6 +53,7 @@ export default class Position {
   ep: number;
   kp: number;
   score: number;
+  hash: Hash;
 
   constructor(
     board: Board,
@@ -59,7 +62,8 @@ export default class Position {
     bc: CR, // black...
     ep: number = -1, // -1 if there is none
     kp: number = -1, // -1 if there is none
-    score?: number) { // if none is provided, calculates it from scratch
+    score?: number, // if none is provided, calculates it from scratch
+    myHash?: Hash) { // if none is provided, calculates it from scratch
     // just copy all the parameters to fields.
     this.turn = turn;
     this.board = board;
@@ -69,9 +73,13 @@ export default class Position {
     this.kp = kp;
     if (score) this.score = score;
     else {
-      this.score = evaluate(this.board);
-      if (this.turn === BLACK) this.score = -this.score; // negaMax
+      this.score = this.turn === WHITE
+        ? evaluate(this.board) : -evaluate(this.board);
     }
+
+    // must come last
+    if (myHash) this.hash = myHash;
+    else this.hash = hash((this: any));
   }
 
   /**
@@ -195,17 +203,17 @@ export default class Position {
       }
       helper(o);
       helper(t);
-    }
 
-    // double move, en passant and pawn promotion
-    if (op === 'P') { // white
-      if (t - o === -16) ep = (t + o) / 2;
-      else if (t === this.ep) board[t + 8] = null;
-      else if (t <= H8) board[t] = (promo: any); // assume it's defined
-    } else if (op === 'p') { // black
-      if (t - o === 16) ep = (t + o) / 2;
-      else if (t === this.ep) board[t - 8] = null;
-      else if (t >= A1) board[t] = (promo: any);
+      // double move, en passant and pawn promotion
+      if (op === 'P') { // white
+        if (t - o === -16) ep = (t + o) / 2;
+        else if (t === this.ep) board[t + 8] = null;
+        else if (t <= H8) board[t] = (promo: any); // assume it's defined
+      } else if (op === 'p') { // black
+        if (t - o === 16) ep = (t + o) / 2;
+        else if (t === this.ep) board[t - 8] = null;
+        else if (t >= A1) board[t] = (promo: any);
+      }
     }
 
     return new Position(board, next(this.turn), wc, bc, ep, kp, score);
@@ -242,19 +250,106 @@ export default class Position {
 
     // pawn stuff
     if (op === 'P') {
-      if (t <= H8) score += pst[(promo: any)][t] - pst[op][t];
+      if (t <= H8) score += pst[promo || 'Q'][t] - pst[op][t];
       else if (t === this.ep) {
         tp = (this.board[t + 8]: any);
         score += pst[tp][t + 8];
       }
     } else if (op === 'p') {
-      if (t >= A1) score += pst[(promo: any)][t] - pst[op][t];
+      if (t >= A1) score += pst[promo || 'q'][t] - pst[op][t];
       else if (t === this.ep) {
         tp = (this.board[t - 8]: any);
         score += pst[tp][t - 8];
       }
     }
     return score;
+  }
+
+  /** Returns the resulting hash from a move. Assumes it's a valid
+      move. */
+  hashMove(move: Move, promo?: Piece) {
+    const o = move[0];
+    const t = move[1];
+    const op: Piece = (this.board[o]: any);
+    let tp = this.board[t];
+
+    const newHash = this.hash.slice(); // copy
+
+    const applyHash = (hashParam: Hash) => {
+      newHash[0] ^= hashParam[0];
+      newHash[1] ^= hashParam[1];
+    }
+
+    // switch turn
+    applyHash(hashes.turn);
+
+    // if this position has an en passant, unhash it
+    if (this.ep !== -1) applyHash(hashes.epFile[this.ep % 8]);
+
+    applyHash(hashes[op][o]);
+    applyHash(hashes[op][t]);
+    if (tp) applyHash(hashes[tp][t]);
+
+    // castling
+    if (op === 'K' && Math.abs(t - o) === 2) {
+      applyHash(hashes.wc[0]);
+      applyHash(hashes.wc[1]);
+
+      applyHash(hashes['R'][(t + o) / 2]);
+      if (t < o) {
+        applyHash(hashes['R'][A1]);
+      } else {
+        applyHash(hashes['R'][H1]);
+      }
+    } else if (op === 'k' && Math.abs(t - o) === 2) {
+      applyHash(hashes.bc[0]);
+      applyHash(hashes.bc[1]);
+
+      applyHash(hashes['r'][(t + o) / 2]);
+      if (t < o) {
+        applyHash(hashes['r'][A8]);
+        applyHash(hashes.bc[0]);
+      } else {
+        applyHash(hashes['r'][H8]);
+        applyHash(hashes.bc[1]);
+      }
+    } else {
+      const helper = (p) => {
+        switch (p) {
+          case A1: if (this.wc[0]) applyHash(hashes.wc[0]); break;
+          case H1: if (this.wc[1]) applyHash(hashes.wc[1]); break;
+          case A8: if (this.bc[0]) applyHash(hashes.bc[0]); break;
+          case H8: if (this.bc[1]) applyHash(hashes.bc[1]); break;
+          default: break;
+        }
+      }
+      helper(o);
+      helper(t);
+
+      // pawn stuff
+      if (op === 'P') {
+        // hash en passant
+        if (t - o === -16) applyHash(hashes.epFile[((t + o) / 2) % 8]);
+        else if (t === this.ep) {
+          tp = (this.board[t + 8]: any);
+          applyHash(hashes[tp][t + 8]);
+        } else if (t <= H8) {
+          applyHash(hashes[op][t]);
+          applyHash(hashes[promo || 'Q'][t]);
+        }
+      } else if (op === 'p') {
+        if (t - o === 16) applyHash(hashes.epFile[((t + o) / 2) % 8]);
+        else if (t === this.ep) {
+          tp = (this.board[t - 8]: any);
+          applyHash(hashes[tp][t - 8]);
+        } else if (t >= A1) {
+          applyHash(hashes[op][t]);
+          applyHash(hashes[promo || 'q'][t]);
+        }
+      }
+    }
+
+    return newHash;
   }
 
   /**

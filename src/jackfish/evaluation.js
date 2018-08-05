@@ -90,13 +90,17 @@ export const pstRaw = {
 
 // Join psts with piece values into a final pst, and add mirrored tables
 // for black pieces
-export const pst: any = {};
+type Pst = {
+  [piece: Piece]: Array<number>
+};
+
+export const pst: Pst = {};
 for (const key in pstRaw) {
-  const bKey = key.toLowerCase(); // corresponding black piece key
-  pst[key] = [];
+  const bKey: Piece = (key.toLowerCase(): any); // corresponding black piece key
+  pst[(key: any)] = [];
   pst[bKey] = [];
   pstRaw[key].forEach((e, i) => {
-    pst[key].push(e + piece[key])
+    pst[(key: any)].push(e + piece[key])
     pst[bKey][56 - i + 2 * (i % 8)] = e + piece[key];
   });
 }

@@ -9,6 +9,15 @@ import type { Move } from './declarations';
 
 // Helpers;
 
+
+function negaMax(
+  pos: Position,
+  depth: number,
+  alpha: number,
+  beta: number): { pv: Array<Move>, score: number } {
+
+}
+
 function mtdf(pos: Position, depth: number, guess: number) {
   const bound = { lower: Number.MIN_SAFE_INTEGER, upper: Number.MAX_SAFE_INTEGER };
   let beta;
@@ -28,10 +37,6 @@ function mtdf(pos: Position, depth: number, guess: number) {
   return { score: f, move: pv[0] };
 }
 
-function negaMax(
-  pos: Position,
-  depth: number,
-  alpha: number,
-  beta: number): { pv: Array<Move>, score: number } {
+export function aiMove(pos: Position): Move {
 
 }

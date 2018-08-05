@@ -4,8 +4,8 @@
  */
 
 import Position from './Position';
-import { pieces, WHITE, BLACK } from './declarations';
-import type { Move } from './declarations';
+import { pieces, WHITE } from './declarations';
+import type { Move, Piece } from './declarations';
 
 const Random = require('random-js');
 // 27102 is just a random number
@@ -30,16 +30,17 @@ export function rand() {
 export const randoms = () => [rand(), rand()];
 
 // initialize hashes array
-export const hashes = {};
+type Hashes = {
+  [index: Piece | 'wc' | 'bc' | 'turn' | 'epFile']: any
+}
+const hashes: Hashes = {};
 pieces.forEach(p => {
   hashes[p] = [];
   for (let i = 0; i < 64; i++) {
     hashes[p].push(randoms()); // [low, high]
   }
 
-  hashes.turn = [];
-  hashes.turn[WHITE] = randoms();
-  hashes.turn[BLACK] = randoms();
+  hashes.turn = randoms(); // apply when white's turn
 
   hashes.wc = [randoms(), randoms()]; // [queenside, kingside]
   hashes.bc = [randoms(), randoms()];
@@ -50,18 +51,19 @@ pieces.forEach(p => {
   }
 });
 
+export { hashes };
+
 // Hash the position, returning hash as [low, high]
 export function hash(pos: Position): [number, number] {
-  let low = 0;
-  let high = 0;
+  const myHash = [0, 0]; // low, high
 
   // apply [low, high] to low and high
-  const applyHashes = (lowAndHigh: [number, number]) => {
-    low ^= lowAndHigh[0];
-    high ^= lowAndHigh[1];
+  const applyHashes = (hashParam: [number, number]) => {
+    myHash[0] ^= hashParam[0];
+    myHash[1] ^= hashParam[1];
   }
 
-  applyHashes(hashes.turn[pos.turn]);
+  if (pos.turn === WHITE) applyHashes(hashes.turn);
   for (let i = 0; i < 64; i++) {
     const p = pos.board[i];
     if (p) applyHashes(hashes[p][i]);
@@ -72,7 +74,7 @@ export function hash(pos: Position): [number, number] {
   if (pos.bc[1]) applyHashes(hashes.bc[1]);
   if (pos.ep !== -1) applyHashes(hashes.epFile[pos.ep % 8]);
 
-  return [low, high];
+  return myHash;
 }
 
 /** Transposition table */
