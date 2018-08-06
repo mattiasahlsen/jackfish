@@ -1,6 +1,6 @@
-import { piece, pst, pstRaw } from '@/jackfish/evaluation';
+import { PIECE, pst, pstRaw } from '@/jackfish/evaluation';
+import { parse } from '@/jackfish/helpers';
 import Jackfish from '@/jackfish';
-import Position from '@/jackfish/Position';
 
 describe('pst', () => {
   const pieces = ['P', 'N', 'B', 'R', 'Q', 'K'];
@@ -33,13 +33,21 @@ describe('pst', () => {
 
   it('should have correct values', () => {
     pieces.forEach(key => {
-      expect(pst[key][5]).toBe(pstRaw[key][5] + piece[key]);
-      expect(pst[key][47]).toBe(pstRaw[key][47] + piece[key]);
+      expect(pst[key][5]).toBe(pstRaw[key][5] + PIECE[key]);
+      expect(pst[key][47]).toBe(pstRaw[key][47] + PIECE[key]);
     })
   })
 });
 
 test('evaluation', () => {
-  const engine = new Jackfish();
-  expect(engine.position.score).toBe(0);
+  const game = new Jackfish();
+  const pos = game.position;
+  expect(pos.score).toBe(0);
+
+  let move = [parse('e2'), parse('e4')]
+  expect(pos.value(move)).toBeGreaterThan(0);
+  expect(-(pos.score + pos.value(move))).toBe(pos.move(move).score);
+
+  move = [parse('e7'), parse('e5')];
+  expect(pos.value(move)).toBeGreaterThan(0);
 })
