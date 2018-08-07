@@ -18,10 +18,11 @@ type Pv = Array<[Move, Piece]>;
 const MAX_SCORE = 15 * PIECE.Q; // with margin
 const SEARCH_MARGIN = 100;
 
-// fail low, high or not at all (exact)
+// fail low, high, hit exact (between alpha and beta) or invalid position
 const L = 'L';
 const E = 'E';
 const H = 'H';
+const I = 'I';
 
 type Entry = {
   pv: Pv, // moves previously beat alpha, from worst to best
@@ -91,6 +92,8 @@ function alphaBeta(
         case H:
           if (entry.score >= beta) return beta
           break;
+        case I: // invalid position, previous move was invalid
+          return beta; // cause beta cutoff
         default: break;
       }
     }
@@ -104,7 +107,7 @@ function alphaBeta(
   const handleMove = (move, promo, score) => {
     if (score > alpha) {
       // if this is the first move to not raise alpha, reset pv
-      if (entry.pv === L) entry.pv = [];
+      if (entry.fail === L) entry.pv = [];
 
       entry.pv.push([move, promo]);
       if (score >= beta) {
@@ -127,8 +130,9 @@ function alphaBeta(
       entry.fail = H;
       return beta;
     } else if (pos.score > alpha) {
-      // expect all moves in quiesence search to raise alpha, so this is
+      // expect all moves in quiescence search to raise alpha, so this is
       // the minimum value
+      entry.fail = E;
       alpha = pos.score;
     } else if (pos.score + PIECE.Q < alpha) return alpha; // delta pruning
 
@@ -136,20 +140,23 @@ function alphaBeta(
       // don't test silent moves
       if (!pos.board[move[1]] && move[1] !== pos.ep) return false;
 
-      const next = pos.score + pos.value(move, promo);
-      if (next >= MAX_SCORE) {
-        alpha = MAX_SCORE;
+      const nextScore = pos.score + pos.value(move, promo);
+      if (nextScore >= MAX_SCORE) {
+        entry.fail = I;
+        alpha = beta;
         return true;
       }
 
       // delta pruning
-      if ((pos.board[move[1]] || move[1] === pos.ep) && next + 2 * PIECE.P >= alpha) {
-        // passes magin and not silent positon, search deeper
-        return handleMove(move, promo, -alphaBeta(pos.move(move, promo, -next), 0, -beta, -alpha));
+      if ((pos.board[move[1]] || move[1] === pos.ep) && nextScore + 2 * PIECE.P >= alpha) {
+        // passes margin and not silent positon, search deeper
+        return handleMove(move, promo, -alphaBeta(pos.move(move, promo, -nextScore), 0, -beta, -alpha));
       }
       return false; // let forMoves() keep running
     })
   } else {
+    // depth >= 1
+
     // futiity pruning
     if (depth === 1 && pos.score + PIECE.Q < alpha) return alpha;
 
@@ -160,20 +167,21 @@ function alphaBeta(
       if (score >= beta) {
         entry.score = beta;
         entry.fail = H;
-        return score;
+        return beta;
       }
     }
 
     forMoves(pos, pv, (move, promo) => {
-      const next = pos.score + pos.value(move, promo);
-      if (next >= MAX_SCORE) {
-        alpha = MAX_SCORE;
+      const nextScore = pos.score + pos.value(move, promo);
+      if (nextScore >= MAX_SCORE) {
+        alpha = beta;
+        entry.fail = I;
         return true; // cause beta cutoff
       }
       // futility pruning
-      if (depth === 1 && next + 2 * PIECE.P < alpha) return false;
+      if (depth === 1 && nextScore + 2 * PIECE.P < alpha) return false;
 
-      return handleMove(move, promo, -alphaBeta(pos.move(move, promo, -next), depth - 1, -beta, -alpha));
+      return handleMove(move, promo, -alphaBeta(pos.move(move, promo, -nextScore), depth - 1, -beta, -alpha));
     });
   }
 
@@ -191,7 +199,8 @@ function mtdf(pos: Position, depth: number, guess: number): number {
   do {
     // find a window of size margin, then do a binary search in it
     if (bound.lower !== -MAX_SCORE && bound.upper !== MAX_SCORE) {
-      beta = (bound.lower + bound.upper) / 2;
+      if (bound.upper - bound.lower > 3) beta = Math.floor((bound.lower + bound.upper) / 2);
+      else beta = f + (f === bound.lower ? 1 : 0);
     } else if (f === bound.lower) beta = f + margin;
     else if (f === bound.upper) beta = f - margin;
     else beta = f;
@@ -200,7 +209,7 @@ function mtdf(pos: Position, depth: number, guess: number): number {
 
     if (f < beta) bound.upper = f;
     else bound.lower = f;
-  } while (bound.lower < bound.upper - 0.01); // - 0.01 for floating point inaccuracy
+  } while (bound.lower <= bound.upper - 1); // - 0.01 for floating point inaccuracy
 
   return f;
 }

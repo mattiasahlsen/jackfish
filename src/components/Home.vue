@@ -55,6 +55,7 @@ export default {
     'game.position.board': function() {
       this.board.position(this.game.fen(), false);
       this.winner = this.game.winner();
+      console.log(game.fen());
     },
     'game.position.turn': function() {
       if (this.game.position.turn === BLACK && this.game.winner() === null) {
