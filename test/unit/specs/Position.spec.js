@@ -3,6 +3,7 @@
 import Engine from '@/jackfish';
 import Position from '@/jackfish/Position';
 import { equalBoards, parse } from '@/jackfish/helpers';
+import { WHITE, BLACK } from '@/jackfish/declarations'
 import type { Piece } from '@/jackfish/declarations';
 
 test('genMoves', () => {
@@ -101,4 +102,43 @@ test('hashMove', () => {
   checkMove('r1bq1bnr/1pppkPpp/p1n5/8/8/8/PPP1PPPP/RNBQKBNR w KQ - 1 5', 'f7', 'g8');
   // promotion with promo argument
   checkMove('r1bq1bnr/1pppkPpp/p1n5/8/8/8/PPP1PPPP/RNBQKBNR w KQ - 1 5', 'f7', 'g8', 'N');
+});
+
+describe('check', () => {
+  const game = new Engine();
+  game.setPos('rnbqkbnr/ppp1pppp/8/1B1p4/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 1 2');
+  expect(game.position.inCheck()).toBe(true);
+  expect(game.position.inCheck(BLACK)).toBe(true);
+  expect(game.position.inCheck(WHITE)).toBe(false);
+
+  game.setPos('r1bqkbnr/pppppppp/8/3P4/8/5N2/PPn1PPPP/RNBQKB1R w KQkq - 0 4');
+  expect(game.position.inCheck()).toBe(true);
+  expect(game.position.inCheck(BLACK)).toBe(false);
+  expect(game.position.inCheck(WHITE)).toBe(true);
+
+  game.setPos('rnbqkbnr/ppppp1pp/8/5p1Q/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 1 2');
+  expect(game.position.inCheck()).toBe(true);
+  expect(game.position.inCheck(BLACK)).toBe(true);
+  expect(game.position.inCheck(WHITE)).toBe(false);
+
+  game.setPos('rnbqkbnr/ppp2Ppp/8/3p4/8/8/PPPPP1PP/RNBQKBNR b KQkq - 0 4');
+  debugger;
+  expect(game.position.inCheck(1)).toBe(true);
+  expect(game.position.inCheck(BLACK)).toBe(true);
+  expect(game.position.inCheck(WHITE)).toBe(false);
+
+  game.setPos('rnbq1bnr/pppp1ppp/4k3/4P3/4P3/8/PPP2PPP/RNBQKBNR w KQ - 1 4');
+  expect(game.position.inCheck()).toBe(false);
+  expect(game.position.inCheck(BLACK)).toBe(false);
+  expect(game.position.inCheck(WHITE)).toBe(false);
+
+  game.setPos('rnbq1bnr/pppp1ppp/4P3/5k2/8/8/PPP2PPP/RNBQKBNR b KQ - 0 7');
+  expect(game.position.inCheck()).toBe(false);
+  expect(game.position.inCheck(BLACK)).toBe(false);
+  expect(game.position.inCheck(WHITE)).toBe(false);
+
+  game.setPos('rnbqkbnr/ppp3pp/4p3/1N1p1p2/3P4/8/PPP1PPPP/R1BQKBNR w KQkq f6 0 4');
+  expect(game.position.inCheck()).toBe(false);
+  expect(game.position.inCheck(BLACK)).toBe(false);
+  expect(game.position.inCheck(WHITE)).toBe(false);
 })

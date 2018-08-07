@@ -219,7 +219,7 @@ export default class Position {
       }
     }
 
-    return new Position(board, next(this.turn), wc, bc, ep, kp, score);
+    return new Position(board, next(this.turn), wc, bc, ep, kp, score, this.hashMove(move, promo));
   }
 
   /**
@@ -268,13 +268,13 @@ export default class Position {
 
   /** Returns the resulting hash from a move. Assumes it's a valid
       move. */
-  hashMove(move: Move, promo?: Piece) {
+  hashMove(move: Move, promo?: Piece): Hash {
     const o = move[0];
     const t = move[1];
     const op: Piece = (this.board[o]: any);
     let tp = this.board[t];
 
-    const newHash = this.hash.slice(); // copy
+    const newHash: Hash = (this.hash.slice(): any); // copy
 
     const applyHash = (hashParam: Hash) => {
       newHash[0] ^= hashParam[0];
@@ -383,15 +383,55 @@ export default class Position {
     return false;
   }
 
-  /** Returns true if side to move is in check. */
-  inCheck(): boolean {
-    // generate moves for other color
-    const moves = this.genMoves(next(this.turn));
-    let el = moves.next();
-    while (!el.done) {
-      const tp = this.board[el.value[1]]; // target piece
-      if (tp && 'Kk'.includes(tp)) return true;
-      el = moves.next();
+  /** Returns true if color is in check. */
+  inCheck(color: Color = this.turn): boolean {
+    // find king
+    let kingSquare;
+    let mySteps; // steps for different pieces
+    let pawnSteps;
+    let pawn;
+    if (color === WHITE) {
+      kingSquare = this.board.indexOf('K'); // square position of king
+
+      mySteps = {
+        'bq': steps.B,
+        'rq': steps.R,
+        'n': steps.N,
+      };
+      pawn = 'p';
+      pawnSteps = [S + W, S + E];
+    } else {
+      kingSquare = this.board.indexOf('k'); // square position of king
+
+      mySteps = {
+        'BQ': steps.B,
+        'RQ': steps.R,
+        'N': steps.N,
+      }
+      pawn = 'P';
+      pawnSteps = [N + W, N + E];
+    }
+
+    // search all steps for all pieces
+    for (const key in mySteps) {
+      for (let i = 0; i < mySteps[key].length; i++) {
+        let t = kingSquare + mySteps[key][i];
+        while (t >= 0 && t <= 63 && colDif(t, t - mySteps[key][i]) < 6) {
+          if (this.board[t]) {
+            if (key.includes(this.board[t])) return true;
+            // pawns get special treatment
+            if (this.board[t] === pawn &&
+              (kingSquare === t + pawnSteps[0] ||
+              kingSquare === t + pawnSteps[1])) {
+              return true;
+            }
+            break;
+          }
+
+          if ('Nn'.includes(key)) break;
+          t += mySteps[key][i];
+        }
+      }
     }
     return false;
   }
