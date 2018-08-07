@@ -38,14 +38,21 @@ describe('hashing', () => {
   });
 
   test('hash()', () => {
-    const game = new Engine();
-    const h = hash(game.position);
-    checkBoth(h);
+    const game1 = new Engine();
+    const h1 = hash(game1.position);
+    checkBoth(h1);
+    const game2 = new Engine();
+    const h2 = hash(game2.position);
+    expect(h1).toEqual(h2);
+
+    game1.move('e2', 'e4');
+    game2.move('e2', 'e4');
+    expect(hash(game1.position)).toEqual(hash(game2.position));
   })
 });
 
 describe('caches', () => {
-  test('simple cache', () => {
+  test('CWF', () => {
     const cache = new Cwf(5);
     for (let i = 1; i <= 5; i++) {
       const hash = randoms();

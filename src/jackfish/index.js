@@ -13,10 +13,12 @@
 
 type Square = number | string;
 
-import type { Board, Piece, Move, CR } from './declarations';
 import { pieces, BLACK, WHITE } from './declarations';
 import Position from './Position';
 import { rank, parse, squareToString, equalBoards } from './helpers';
+import aimove from './AI';
+
+import type { Board, Piece, Move, CR } from './declarations';
 
 /*
 The board is represented as an array with indexes like this:
@@ -287,7 +289,7 @@ export default class Engine {
 
     const pos = this.position;
     if (this.valid(o, t)) {
-      if ('Pp'.includes((pos.board[o]: any)) || pos.board[t] !== null) {
+      if ('Pp'.includes((pos.board[o]: any)) || pos.board[t] !== null || t === pos.ep) {
         this.halfMoveClock = 0;
       } else this.halfMoveClock += 1;
 
@@ -395,11 +397,15 @@ export default class Engine {
   }
 
   /**
-   * Let the AI make a move.
-   * @return Returns true if there was a valid move to be made,
-   *         otherwise false.
+   * Let the AI make a move. Assumes there is at least one valid move to be
+   * made.
+   * @return The move that was made.
    */
   aiMove(): Move {
-
+    const move = aimove(this.position);
+    if (move) {
+      this.move(move[0][0], move[0][1], move[1]);
+      return move[0];
+    } else throw new Error('The AI failed to make a move');
   }
 }

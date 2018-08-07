@@ -10,7 +10,7 @@ import type { Board, Piece } from './declarations';
 // Piece values.
 // King value is set to a very high value to easily detect when king is taken,
 // and thereby detecting checkmate, and to always avoid it if possible.
-export const piece = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 30000 };
+export const PIECE = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 30000 };
 
 // Piece-square tables.
 // Index is index of position on the board for white, and for the board
@@ -100,8 +100,8 @@ for (const key in pstRaw) {
   pst[(key: any)] = [];
   pst[bKey] = [];
   pstRaw[key].forEach((e, i) => {
-    pst[(key: any)].push(e + piece[key])
-    pst[bKey][56 - i + 2 * (i % 8)] = e + piece[key];
+    pst[(key: any)].push(e + PIECE[key])
+    pst[bKey][56 - i + 2 * (i % 8)] = e + PIECE[key];
   });
 }
 

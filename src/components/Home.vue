@@ -55,6 +55,11 @@ export default {
     'game.position.board': function() {
       this.board.position(this.game.fen(), false);
       this.winner = this.game.winner();
+    },
+    'game.position.turn': function() {
+      if (this.game.position.turn === BLACK && this.game.winner() === null) {
+        setTimeout(() => this.game.aiMove(), 100);
+      }
     }
   },
   mounted () {
@@ -106,6 +111,7 @@ export default {
     },
     undoMove() {
       this.game.undoMove();
+      if (game.position.turn === BLACK) this.game.undoMove();
     },
   },
 }

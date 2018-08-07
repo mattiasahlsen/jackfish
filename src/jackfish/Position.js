@@ -11,10 +11,10 @@ import { hash, hashes } from './tp';
 import type { Color, Board, Piece, Move, CR, Hash } from './declarations';
 
 // some squares
-const A1 = 56;
-const H1 = 63;
-const A8 = 0;
-const H8 = 7;
+export const A1 = 56;
+export const H1 = 63;
+export const A8 = 0;
+export const H8 = 7;
 
 // directions
 const N = -8; // north
@@ -62,7 +62,8 @@ export default class Position {
     bc: CR, // black...
     ep: number = -1, // -1 if there is none
     kp: number = -1, // -1 if there is none
-    score?: number, // if none is provided, calculates it from scratch
+    // Score for color to move. If none is provided, calculates it from scratch.
+    score?: number,
     myHash?: Hash) { // if none is provided, calculates it from scratch
     // just copy all the parameters to fields.
     this.turn = turn;
@@ -151,9 +152,10 @@ export default class Position {
    * @param move  The move
    * @param promo If there is a promotion of a pawn, this is the piece to
    *              replace it with. Default to Queen.
+   * @param score Optional to pass score to avoid calculating it twice
    * @return      The new position.
    */
-  move(move: Move, promo?: Piece): Position {
+  move(move: Move, promo?: Piece, score?: number): Position {
     const o = move[0]; // origin square
     const t = move[1]; // target square
     // it's assumed that there is a piece at the origin position,
@@ -169,7 +171,8 @@ export default class Position {
     let bc: CR = (this.bc.slice(): any);
     let ep = -1; // default
     let kp = -1;
-    const score = this.score + this.value(move, promo);
+    // negate score so it's for the other side
+    score = score || -(this.score + this.value(move, promo));
 
     // make the move
     board[t] = board[o];
@@ -220,7 +223,7 @@ export default class Position {
   }
 
   /**
-   * Returns the value of a move. Assumes it's valid.
+   * Returns the value (change of position score) of a move. Assumes it's valid.
    */
   value(move: Move, promo?: Piece): number {
     const o = move[0];
@@ -231,9 +234,7 @@ export default class Position {
     // invalid castling detection, returns MAX_SAFE_INTEGER if last move's
     // castle was invalid (if king is threatened on any of the squares
     // it moves over)
-    if (this.kp !== -1 && Math.abs(t - this.kp) < 2) {
-      return Number.MAX_SAFE_INTEGER;
-    }
+    if (this.kp !== -1 && Math.abs(t - this.kp) < 2) return 30000;
 
     let score = pst[op][t] - pst[op][o];
     // capture

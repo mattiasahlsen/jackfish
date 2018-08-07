@@ -5,7 +5,7 @@
 
 import Position from './Position';
 import { pieces, WHITE } from './declarations';
-import type { Move, Piece } from './declarations';
+import type { Piece } from './declarations';
 
 const Random = require('random-js');
 // 27102 is just a random number
@@ -79,11 +79,8 @@ export function hash(pos: Position): [number, number] {
 
 /** Transposition table */
 
-// Entry
-type Entry = Move | number; // move or score
-
 // LRU cache, first in first out, size > 0
-export class Lru {
+export class Lru<Entry = any> {
   map: Map<number, Array<Entry>> = new Map();
   // max number of keys in map (not max number of entries since there can be
   // many entries in an array at one key)
@@ -113,8 +110,8 @@ export class Lru {
     return undefined;
   }
 
-  /** Add an entry to the cache. */
-  add(hash: [number, number], val: Entry): void {
+  /** Add an entry to the cache, returns the added entry. */
+  add(hash: [number, number], val: Entry): Entry {
     const low = hash[0];
     const high = hash[1];
     const arr = this.map.get(low);
@@ -133,6 +130,8 @@ export class Lru {
       // $FlowFixMe
       this.map.delete(this.map.keys().next().value);
     }
+
+    return val;
   }
 
   clear() {
@@ -146,7 +145,7 @@ export class Lru {
 
 // A simpler clear-when-full cache,
 // has a max size but just resets when it's reached
-export class Cwf {
+export class Cwf<Entry = any> {
   cache: Array<Array<Entry>> = [];
   maxSize: number;
   currentSize: number = 0;
@@ -155,8 +154,11 @@ export class Cwf {
     this.maxSize = size;
   }
 
-  size() {
+  size(): number {
     return this.currentSize;
+  }
+  setSize(size: number): void {
+    this.maxSize = size;
   }
 
   /** Returns entry at hash or undefined if there is none. */
@@ -169,11 +171,12 @@ export class Cwf {
   }
 
   /** Add an entry to the cache. Assumes it does not already exist */
-  add(hash: [number, number], val: Entry): void {
+  add(hash: [number, number], val: Entry): Entry {
     const low = hash[0];
     const high = hash[1];
 
     // if passed size limit, clear cache and start over
+    // (might clear one too early)
     if (this.currentSize === this.maxSize) {
       this.cache = [];
       this.currentSize = 0;
@@ -187,5 +190,10 @@ export class Cwf {
       this.cache[low][high] = val;
       this.currentSize++;
     }
+    return val;
+  }
+  clear() {
+    this.cache = [];
+    this.currentSize = 0;
   }
 }
