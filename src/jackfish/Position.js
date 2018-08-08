@@ -46,6 +46,7 @@ for (let i = 0; i < steps.P.length; i++) steps.p.push(-steps.P[i]);
  * A complete position of a chess game.
  */
 export default class Position {
+  prev: ?Position;
   board: Board;
   turn: Color;
   wc: CR;
@@ -72,14 +73,14 @@ export default class Position {
     this.bc = bc;
     this.ep = ep;
     this.kp = kp;
-    if (score) this.score = score;
+    if (score !== undefined) this.score = score;
     else {
       this.score = this.turn === WHITE
         ? evaluate(this.board) : -evaluate(this.board);
     }
 
     // must come last
-    if (myHash) this.hash = myHash;
+    if (myHash !== undefined) this.hash = myHash;
     else this.hash = hash((this: any));
   }
 
@@ -142,8 +143,10 @@ export default class Position {
    */
   nullMove(): Position {
     // copying board with slice, works because it's shallow
-    return new Position(this.board.slice(),
-      next(this.turn), this.wc, this.bc, -1, -1, -this.score);
+    const newPos = new Position(this.board.slice(),
+      next(this.turn), this.wc, this.bc, -1, -1, -this.score,);
+    newPos.prev = this;
+    return newPos;
   }
 
   /**
@@ -172,7 +175,7 @@ export default class Position {
     let ep = -1; // default
     let kp = -1;
     // negate score so it's for the other side
-    score = score || -(this.score + this.value(move, promo));
+    if (score === undefined) score = -(this.score + this.value(move, promo));
 
     // make the move
     board[t] = board[o];
@@ -219,7 +222,9 @@ export default class Position {
       }
     }
 
-    return new Position(board, next(this.turn), wc, bc, ep, kp, score, this.hashMove(move, promo));
+    const newPos = new Position(board, next(this.turn), wc, bc, ep, kp, score, this.hashMove(move, promo));
+    newPos.prev = this;
+    return newPos;
   }
 
   /**

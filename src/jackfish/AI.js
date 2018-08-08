@@ -4,9 +4,11 @@
  * @flow
  */
 
+import Engine from './';
 import Position, { A1, H8 } from './Position';
 import { Cwf } from './tp'
 import { PIECE } from './evaluation';
+import { next } from './helpers';
 
 import type { Move, Piece } from './declarations';
 
@@ -16,7 +18,7 @@ type Pv = Array<[Move, Piece]>;
 // Constants and types.
 // If value of position is > this, it means previous move was invalid
 const MAX_SCORE = 15 * PIECE.Q; // with margin
-const SEARCH_MARGIN = 100;
+const SEARCH_MARGIN = 50;
 
 // fail low, high, hit exact (between alpha and beta) or invalid position
 const L = 'L';
@@ -31,10 +33,14 @@ type Entry = {
   fail: 'L' | 'E' | 'H'
 };
 
-const tp: Cwf<Entry> = new Cwf(1e6);
+const tp: Cwf<Entry> = new Cwf(1e7);
 
 // Logs
 let tpHits = 0;
+let searched = 0; // how many positions searched
+
+let timeLimit;
+const timeout = () => Date.now() > timeLimit;
 
 // Helper functions
 
@@ -66,6 +72,21 @@ function forMoves(pos: Position, pv: Pv,
   }
 }
 
+// Used for looking for invalid moves one depth away while being efficient
+function lastPly(pos: Position, alpha, beta) {
+  forMoves(pos, [], (move, promo) => {
+    const nextScore = pos.score + pos.value(move, promo);
+    if (nextScore > alpha) {
+      if (nextScore >= beta) {
+        alpha = beta;
+        return true;
+      } else alpha = nextScore;
+    }
+    return false;
+  });
+  return alpha;
+}
+
 // Main algorithm
 
 function alphaBeta(
@@ -74,7 +95,7 @@ function alphaBeta(
   alpha: number,
   beta: number,
   root: boolean = false): number {
-  if (depth < 0) depth = 0;
+  searched++;
   let pv = []; // default
 
   // look up in tp
@@ -105,8 +126,16 @@ function alphaBeta(
 
   // Callback helper
   const handleMove = (move, promo, score) => {
+    // if time's out
+    if (timeout()) return true;
+
     if (score > alpha) {
-      // if this is the first move to not raise alpha, reset pv
+      if (score >= MAX_SCORE) {
+        alpha = beta;
+        entry.fail = I;
+        return true;
+      }
+      // if this is the first move to raise alpha, reset pv
       if (entry.fail === L) entry.pv = [];
 
       entry.pv.push([move, promo]);
@@ -123,47 +152,55 @@ function alphaBeta(
   };
 
   // quiescence search ( 2 * PIECE.P (200 centipawns) is the margin)
-  if (depth === 0) {
+  if (depth <= 0) {
     // null move beta cutoff
     if (pos.score >= beta) {
-      entry.score = beta;
-      entry.fail = H;
-      return beta;
-    } else if (pos.score > alpha) {
-      // expect all moves in quiescence search to raise alpha, so this is
-      // the minimum value
-      entry.fail = E;
-      alpha = pos.score;
-    } else if (pos.score + PIECE.Q < alpha) return alpha; // delta pruning
-
-    forMoves(pos, pv, (move, promo) => {
-      // don't test silent moves
-      if (!pos.board[move[1]] && move[1] !== pos.ep) return false;
-
-      const nextScore = pos.score + pos.value(move, promo);
-      if (nextScore >= MAX_SCORE) {
-        entry.fail = I;
-        alpha = beta;
-        return true;
+      if (pos.inCheck()) {
+        // test all moves
+        forMoves(pos, pv, (move, promo) => {
+          const nextPos = pos.move(move, promo);
+          // if this move got rid of the check threat
+          if (!nextPos.inCheck(pos.turn)) {
+            return handleMove(move, promo, -alphaBeta(nextPos, depth - 1, -beta, -alpha));
+          } else return false;
+        })
+      } else {
+        entry.score = beta;
+        entry.fail = H;
+        return beta;
       }
+    } else if (pos.score + PIECE.Q < alpha) {
+      if (pos.inCheck(next(pos.turn))) return beta; // if you can take king...
+      return alpha; // delta pruning
+    } else {
+      forMoves(pos, pv, (move, promo) => {
+        // don't test silent moves
+        if (!pos.board[move[1]] && move[1] !== pos.ep) return false;
 
-      // delta pruning
-      if ((pos.board[move[1]] || move[1] === pos.ep) && nextScore + 2 * PIECE.P >= alpha) {
-        // passes margin and not silent positon, search deeper
-        return handleMove(move, promo, -alphaBeta(pos.move(move, promo, -nextScore), 0, -beta, -alpha));
-      }
-      return false; // let forMoves() keep running
-    })
+        const nextScore = pos.score + pos.value(move, promo);
+
+        // delta pruning
+        if ((pos.board[move[1]] || move[1] === pos.ep) && nextScore + 2 * PIECE.P >= alpha) {
+          // passes margin and not silent positon, search deeper
+          return handleMove(move, promo, -alphaBeta(pos.move(move, promo, -nextScore), depth - 1, -beta, -alpha));
+        }
+        return false; // let forMoves() keep running
+      });
+    }
   } else {
     // depth >= 1
 
-    // futiity pruning
-    if (depth === 1 && pos.score + PIECE.Q < alpha) return alpha;
+    // futiity pruning (use when searching deeper, not yet, need
+    // to watch out for king-take moves)
+    /*if (!root && depth === 1 && pos.score + PIECE.Q < alpha) {
+      if (pos.isCheck(next(pos.turn))) return alpha;
+    }*/
 
     // don't do nullmove at root
     let score;
     if (!root) {
       score = -alphaBeta(pos.nullMove(), depth - 3, -beta, -alpha);
+      // score is NaN, this if-statement will fail
       if (score >= beta) {
         entry.score = beta;
         entry.fail = H;
@@ -173,16 +210,16 @@ function alphaBeta(
 
     forMoves(pos, pv, (move, promo) => {
       const nextScore = pos.score + pos.value(move, promo);
-      if (nextScore >= MAX_SCORE) {
-        alpha = beta;
-        entry.fail = I;
-        return true; // cause beta cutoff
-      }
       // futility pruning
       if (depth === 1 && nextScore + 2 * PIECE.P < alpha) return false;
 
       return handleMove(move, promo, -alphaBeta(pos.move(move, promo, -nextScore), depth - 1, -beta, -alpha));
     });
+  }
+
+  // could only have gotten a better score, we got interrupted
+  if (timeout()) {
+    if (entry.fail !== I) entry.fail = H;
   }
 
   // alpha should have been changed to beta on beta cutoff
@@ -209,7 +246,7 @@ function mtdf(pos: Position, depth: number, guess: number): number {
 
     if (f < beta) bound.upper = f;
     else bound.lower = f;
-  } while (bound.lower <= bound.upper - 1); // - 0.01 for floating point inaccuracy
+  } while (bound.lower <= bound.upper - 1 && !timeout()); // - 0.01 for floating point inaccuracy
 
   return f;
 }
@@ -217,19 +254,34 @@ function mtdf(pos: Position, depth: number, guess: number): number {
 // assumes there are valid moves
 export default function move(pos: Position): [Move, Piece] | null {
   let score = pos.score;
+  let entry: any;
+
   // iterative deepening
-  for (let i = 1; i < 4; i++) {
+  timeLimit = Date.now() + 5000; // run for 5 sec
+
+  let i = 1;
+  while (i < 1000 && !timeout()) {
+    // get the tp entry from the previous depth
+    if (i > 1) entry = tp.get(pos.hash);
     score = mtdf(pos, i, score)
     console.log('depth:' + i + ', size: ' + tp.size());
+    i++;
   }
 
-  // should always be a hit
-  const entry = tp.get(pos.hash);
+  // compare entry from the latest depth (that got interrupted most likely)
+  // to the entry from the depth before to see which one is best
+  const deepestEntry: any = tp.get(pos.hash);
+  if (deepestEntry.score > (entry: any).score &&
+    (deepestEntry.fail === H || deepestEntry.fail === E)) entry = deepestEntry;
 
+  console.log('searched: ' + searched);
   console.log('hits: ' + tpHits + '\n');
   tpHits = 0;
   tp.clear();
 
-  if (entry && entry.pv.length > 0) return entry.pv[entry.pv.length - 1];
-  else return null;
+  while ((entry: any).pv.length > 0) {
+    let move = (entry: any).pv.pop(); // [move, promo]
+    if (pos.valid(move[0])) return move;
+  }
+  return null;
 }
