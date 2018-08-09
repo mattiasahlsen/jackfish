@@ -434,8 +434,7 @@ export default class Position {
   }
 
   /**
-   * Checks if a move is valid, not taking into account promotion piece argument
-   * on pawn promotion.
+   * Checks if a move is valid.
    */
   valid(move: Move): boolean {
     const moves = this.genMoves(); // generator

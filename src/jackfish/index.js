@@ -13,7 +13,7 @@
 
 type Square = number | string;
 
-import { pieces, BLACK, WHITE } from './declarations';
+import { PIECES, BLACK, WHITE } from './declarations';
 import Position from './Position';
 import { rank, parse, squareToString, equalBoards } from './helpers';
 import aimove from './AI';
@@ -154,7 +154,7 @@ export default class Engine {
           board[pos + j] = null;
         }
         pos += num;
-      } else if (pieces.includes(c)) {
+      } else if (PIECES.includes(c)) {
         // Cast to piece when we know it is one.
         c = ((c: any): Piece)
         board[pos] = c;
@@ -209,7 +209,7 @@ export default class Engine {
     // if we've made it this far, we're golden
     this.halfMoveClock = halfMoveClock;
     this.fullMove = fullMove;
-    this.position = new Position(board, turn, wc, bc, ep, kp);
+    this.position = new Position(board, turn, wc, bc, ep, kp, halfMoveClock);
     this.history = [];
     return true;
   }
@@ -259,7 +259,7 @@ export default class Engine {
     else fen += '-';
 
     fen += ' ';
-    fen += this.halfMoveClock;
+    fen += pos.halfMoveClock;
 
     fen += ' ';
     fen += this.fullMove;
@@ -366,7 +366,7 @@ export default class Engine {
     return this.moves().length === 0 && !this.position.inCheck();
   }
 
-  /** Returns an array of valid moves. */
+  /** Returns an array of valid moves. Only returns one move for promotions. */
   moves(): Array<Move> {
     const moves = [];
     const generator = this.position.genMoves(); // move generator
@@ -397,15 +397,27 @@ export default class Engine {
   }
 
   /**
-   * Let the AI make a move. Assumes there is at least one valid move to be
-   * made.
+   * Let the AI make a move. If there are no valid moves, return null.
+   * @param [time=5000] Time to think in milliseconds. Min-value: 1000.
    * @return The move that was made.
    */
-  aiMove(): Move {
-    const move = aimove(this.position);
+  aiMove(time: number = 5000): Move | null {
+    // This implies that there are valid moves to be made.
+    if (this.winner() !== null) return null;
+
+    const move = aimove(this.position, time);
     if (move) {
       this.move(move[0][0], move[0][1], move[1]);
       return move[0];
     } else throw new Error('The AI failed to make a move');
+  }
+
+  /**
+   * Returns whose turn it is.
+   * @return turn
+   */
+  turn(): 'white' | 'black' {
+    if (this.position.turn === WHITE) return 'white';
+    else return 'black';
   }
 }

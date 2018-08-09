@@ -58,8 +58,8 @@ export default {
       console.log(game.fen());
     },
     'game.position.turn': function() {
-      if (this.game.position.turn === BLACK && this.game.winner() === null) {
-        setTimeout(() => this.game.aiMove(), 100);
+      if (this.game.turn() === 'black' && this.game.winner() === null) {
+        setTimeout(() => this.game.aiMove(5000), 100);
       }
     }
   },

@@ -5,7 +5,7 @@
 
 export const WHITE = 0;
 export const BLACK = 1;
-export const pieces = [
+export const PIECES = [
   'P', 'N', 'B', 'R', 'Q', 'K',
   'p', 'n', 'b', 'r', 'q', 'k'
 ];

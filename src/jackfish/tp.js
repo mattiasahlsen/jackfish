@@ -4,7 +4,7 @@
  */
 
 import Position from './Position';
-import { pieces, WHITE } from './declarations';
+import { PIECES, WHITE } from './declarations';
 import type { Piece } from './declarations';
 
 const Random = require('random-js');
@@ -34,7 +34,7 @@ type Hashes = {
   [index: Piece | 'wc' | 'bc' | 'turn' | 'epFile' | 'kp']: any
 }
 const hashes: Hashes = {};
-pieces.forEach(p => {
+PIECES.forEach(p => {
   hashes[p] = [];
   for (let i = 0; i < 64; i++) {
     hashes[p].push(randoms()); // [low, high]

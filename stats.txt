@@ -1,0 +1,5 @@
+After first move e2 to e4:
+
+Moves searched when not passing pieces object: 236080
+Moves searched when passing pieces object: 216640
+Moves searched when properly checking for stalemate in endgame: 186273
