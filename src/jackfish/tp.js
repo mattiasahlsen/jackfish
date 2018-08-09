@@ -31,7 +31,7 @@ export const randoms = () => [rand(), rand()];
 
 // initialize hashes array
 type Hashes = {
-  [index: Piece | 'wc' | 'bc' | 'turn' | 'epFile']: any
+  [index: Piece | 'wc' | 'bc' | 'turn' | 'epFile' | 'kp']: any
 }
 const hashes: Hashes = {};
 pieces.forEach(p => {
@@ -48,6 +48,12 @@ pieces.forEach(p => {
   hashes.epFile = [];
   for (let i = 0; i < 8; i++) {
     hashes.epFile.push(randoms()); // [A, B, C...]
+  }
+
+  hashes.kp = [];
+  const kps = [3, 5, 59, 61];
+  for (let i = 0; i < kps.length; i++) {
+    hashes.kp[kps[i]] = randoms();
   }
 });
 
@@ -73,6 +79,7 @@ export function hash(pos: Position): [number, number] {
   if (pos.bc[0]) applyHashes(hashes.bc[0]);
   if (pos.bc[1]) applyHashes(hashes.bc[1]);
   if (pos.ep !== -1) applyHashes(hashes.epFile[pos.ep % 8]);
+  if (pos.kp !== -1) applyHashes(hashes.kp[pos.kp]);
 
   return myHash;
 }

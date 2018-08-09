@@ -314,8 +314,9 @@ export default class Position {
     // switch turn
     applyHash(hashes.turn);
 
-    // if this position has an en passant, unhash it
+    // if this position has an en passant or king passant, unhash it
     if (this.ep !== -1) applyHash(hashes.epFile[this.ep % 8]);
+    if (this.kp !== -1) applyHash(hashes.kp[this.kp]);
 
     applyHash(hashes[op][o]);
     applyHash(hashes[op][t]);
@@ -328,11 +329,13 @@ export default class Position {
 
     // castling
     if (op === 'K' && Math.abs(t - o) === 2) {
+      const kp = (t + o) / 2;
       applyHash(hashes.wc[0]);
       applyHash(hashes.wc[1]);
+      applyHash(hashes.kp[kp]);
 
-      applyHash(hashes['R'][(t + o) / 2]);
-      applyBoardHash(hashes['R'][(t + o) / 2]);
+      applyHash(hashes['R'][kp]);
+      applyBoardHash(hashes['R'][kp]);
       if (t < o) {
         applyHash(hashes['R'][A1]);
         applyBoardHash(hashes['R'][A1]);
@@ -341,11 +344,13 @@ export default class Position {
         applyBoardHash(hashes['R'][H1]);
       }
     } else if (op === 'k' && Math.abs(t - o) === 2) {
+      const kp = (t + o) / 2;
       applyHash(hashes.bc[0]);
       applyHash(hashes.bc[1]);
+      applyHash(hashes.kp[kp]);
 
-      applyHash(hashes['r'][(t + o) / 2]);
-      applyBoardHash(hashes['r'][(t + o) / 2]);
+      applyHash(hashes['r'][kp]);
+      applyBoardHash(hashes['r'][kp]);
       if (t < o) {
         applyHash(hashes['r'][A8]);
         applyBoardHash(hashes['r'][A8]);
@@ -405,8 +410,10 @@ export default class Position {
       newHash[1] ^= hashParam[1];
     }
 
-    // if this position has an en passant, unhash it
+    // if this position has an en passant or king passant, unhash it
     if (this.ep !== -1) applyHash(hashes.epFile[this.ep % 8]);
+    if (this.kp !== -1) applyHash(hashes.kp[this.kp]);
+
     applyHash(hashes.turn);
 
     return newHash;
