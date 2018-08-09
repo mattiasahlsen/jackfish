@@ -46,26 +46,32 @@ for (let i = 0; i < steps.P.length; i++) steps.p.push(-steps.P[i]);
  * A complete position of a chess game.
  */
 export default class Position {
-  prev: ?Position;
   board: Board;
   turn: Color;
   wc: CR;
   bc: CR;
   ep: number;
   kp: number;
+  halfMoveClock: number;
+
   score: number;
   hash: Hash;
+  boardHash: Hash;
 
   constructor(
     board: Board,
     turn: Color,
     wc: CR, // white castling rights
     bc: CR, // black...
-    ep: number = -1, // -1 if there is none
-    kp: number = -1, // -1 if there is none
+    ep: number, // -1 if there is none
+    kp: number, // -1 if there is none
+    halfMoveClock: number = 0, // defaults to 0
+
     // Score for color to move. If none is provided, calculates it from scratch.
     score?: number,
-    myHash?: Hash) { // if none is provided, calculates it from scratch
+    myHash?: Hash,
+    boardHash?: Hash,
+  ) { // if none is provided, calculates it from scratch
     // just copy all the parameters to fields.
     this.turn = turn;
     this.board = board;
@@ -73,15 +79,20 @@ export default class Position {
     this.bc = bc;
     this.ep = ep;
     this.kp = kp;
+
     if (score !== undefined) this.score = score;
     else {
       this.score = this.turn === WHITE
         ? evaluate(this.board) : -evaluate(this.board);
     }
 
-    // must come last
     if (myHash !== undefined) this.hash = myHash;
     else this.hash = hash((this: any));
+    if (boardHash !== undefined) this.boardHash = boardHash;
+    else this.boardHash = this.hashBoard();
+
+    if (halfMoveClock !== undefined) this.halfMoveClock = halfMoveClock;
+    else this.halfMoveClock = 0;
   }
 
   /**
@@ -143,10 +154,9 @@ export default class Position {
    */
   nullMove(): Position {
     // copying board with slice, works because it's shallow
-    const newPos = new Position(this.board.slice(),
-      next(this.turn), this.wc, this.bc, -1, -1, -this.score,);
-    newPos.prev = this;
-    return newPos;
+    return new Position(this.board.slice(), next(this.turn), this.wc, this.bc,
+      -1, -1, this.halfMoveClock + 1,
+      -this.score, this.hashNullMove(), this.boardHash);
   }
 
   /**
@@ -176,6 +186,11 @@ export default class Position {
     let kp = -1;
     // negate score so it's for the other side
     if (score === undefined) score = -(this.score + this.value(move, promo));
+
+    let halfMoveClock;
+    // will also be reset at pawn take
+    if (board[t]) halfMoveClock = 0;
+    else halfMoveClock = this.halfMoveClock + 1;
 
     // make the move
     board[t] = board[o];
@@ -212,19 +227,24 @@ export default class Position {
 
       // double move, en passant and pawn promotion
       if (op === 'P') { // white
+        halfMoveClock = 0;
+
         if (t - o === -16) ep = (t + o) / 2;
         else if (t === this.ep) board[t + 8] = null;
         else if (t <= H8) board[t] = (promo: any); // assume it's defined
       } else if (op === 'p') { // black
+        halfMoveClock = 0;
+
         if (t - o === 16) ep = (t + o) / 2;
         else if (t === this.ep) board[t - 8] = null;
         else if (t >= A1) board[t] = (promo: any);
       }
     }
 
-    const newPos = new Position(board, next(this.turn), wc, bc, ep, kp, score, this.hashMove(move, promo));
-    newPos.prev = this;
-    return newPos;
+    const newHashes = this.hashMove(move, promo)
+
+    return new Position(board, next(this.turn), wc, bc, ep, kp,
+      halfMoveClock, score, newHashes[0], newHashes[1]);
   }
 
   /**
@@ -271,19 +291,24 @@ export default class Position {
     return score;
   }
 
-  /** Returns the resulting hash from a move. Assumes it's a valid
-      move. */
-  hashMove(move: Move, promo?: Piece): Hash {
+  /** Returns the resulting hashes from a move (position hash and board hash).
+      Assumes it's a valid move. */
+  hashMove(move: Move, promo?: Piece): [Hash, Hash] {
     const o = move[0];
     const t = move[1];
     const op: Piece = (this.board[o]: any);
     let tp = this.board[t];
 
     const newHash: Hash = (this.hash.slice(): any); // copy
+    const newBoardHash: Hash = (this.boardHash.slice(): any);
 
     const applyHash = (hashParam: Hash) => {
       newHash[0] ^= hashParam[0];
       newHash[1] ^= hashParam[1];
+    }
+    const applyBoardHash = (hashParam: Hash) => {
+      newBoardHash[0] ^= newBoardHash[0];
+      newBoardHash[1] ^= newBoardHash[1];
     }
 
     // switch turn
@@ -294,7 +319,12 @@ export default class Position {
 
     applyHash(hashes[op][o]);
     applyHash(hashes[op][t]);
-    if (tp) applyHash(hashes[tp][t]);
+    applyBoardHash(hashes[op][o]);
+    applyBoardHash(hashes[op][t]);
+    if (tp) {
+      applyHash(hashes[tp][t]);
+      applyBoardHash(hashes[tp][t]);
+    }
 
     // castling
     if (op === 'K' && Math.abs(t - o) === 2) {
@@ -302,22 +332,26 @@ export default class Position {
       applyHash(hashes.wc[1]);
 
       applyHash(hashes['R'][(t + o) / 2]);
+      applyBoardHash(hashes['R'][(t + o) / 2]);
       if (t < o) {
         applyHash(hashes['R'][A1]);
+        applyBoardHash(hashes['R'][A1]);
       } else {
         applyHash(hashes['R'][H1]);
+        applyBoardHash(hashes['R'][H1]);
       }
     } else if (op === 'k' && Math.abs(t - o) === 2) {
       applyHash(hashes.bc[0]);
       applyHash(hashes.bc[1]);
 
       applyHash(hashes['r'][(t + o) / 2]);
+      applyBoardHash(hashes['r'][(t + o) / 2]);
       if (t < o) {
         applyHash(hashes['r'][A8]);
-        applyHash(hashes.bc[0]);
+        applyBoardHash(hashes['r'][A8]);
       } else {
         applyHash(hashes['r'][H8]);
-        applyHash(hashes.bc[1]);
+        applyBoardHash(hashes['r'][H8]);
       }
     } else {
       const helper = (p) => {
@@ -339,23 +373,57 @@ export default class Position {
         else if (t === this.ep) {
           tp = (this.board[t + 8]: any);
           applyHash(hashes[tp][t + 8]);
+          applyBoardHash(hashes[tp][t + 8]);
         } else if (t <= H8) {
           applyHash(hashes[op][t]);
           applyHash(hashes[promo || 'Q'][t]);
+          applyBoardHash(hashes[op][t]);
+          applyBoardHash(hashes[promo || 'Q'][t]);
         }
       } else if (op === 'p') {
         if (t - o === 16) applyHash(hashes.epFile[((t + o) / 2) % 8]);
         else if (t === this.ep) {
           tp = (this.board[t - 8]: any);
           applyHash(hashes[tp][t - 8]);
+          applyBoardHash(hashes[tp][t - 8]);
         } else if (t >= A1) {
           applyHash(hashes[op][t]);
           applyHash(hashes[promo || 'q'][t]);
+          applyBoardHash(hashes[op][t]);
+          applyBoardHash(hashes[promo || 'q'][t]);
         }
       }
     }
 
+    return [newHash, newBoardHash];
+  }
+
+  hashNullMove(): Hash {
+    const newHash: Hash = (this.hash.slice(): any); // copy old hash
+    const applyHash = (hashParam: Hash) => {
+      newHash[0] ^= hashParam[0];
+      newHash[1] ^= hashParam[1];
+    }
+
+    // if this position has an en passant, unhash it
+    if (this.ep !== -1) applyHash(hashes.epFile[this.ep % 8]);
+    applyHash(hashes.turn);
+
     return newHash;
+  }
+
+  hashBoard(): Hash {
+    const hash: Hash = [0, 0];
+
+    for (let i = 0; i < 64; i++) {
+      const p = this.board[i];
+      if (p) {
+        // apply hash
+        hash[0] ^= hashes[p][i][0];
+        hash[1] ^= hashes[p][i][1];
+      }
+    }
+    return hash;
   }
 
   /**
@@ -388,15 +456,15 @@ export default class Position {
     return false;
   }
 
-  /** Returns true if color is in check. */
-  inCheck(color: Color = this.turn): boolean {
-    // find king
-    let kingSquare;
+  /** Returns true if color is in check. If square is provided,
+      checks if that square is threatened. */
+  inCheck(color: Color = this.turn, square?: number): boolean {
     let mySteps; // steps for different pieces
     let pawnSteps;
     let pawn;
     if (color === WHITE) {
-      kingSquare = this.board.indexOf('K'); // square position of king
+      // square position of king
+      if (square === undefined) square = this.board.indexOf('K');
 
       mySteps = {
         'bq': steps.B,
@@ -406,7 +474,7 @@ export default class Position {
       pawn = 'p';
       pawnSteps = [S + W, S + E];
     } else {
-      kingSquare = this.board.indexOf('k'); // square position of king
+      if (square === undefined) this.board.indexOf('k');
 
       mySteps = {
         'BQ': steps.B,
@@ -420,14 +488,14 @@ export default class Position {
     // search all steps for all pieces
     for (const key in mySteps) {
       for (let i = 0; i < mySteps[key].length; i++) {
-        let t = kingSquare + mySteps[key][i];
+        let t = square + mySteps[key][i];
         while (t >= 0 && t <= 63 && colDif(t, t - mySteps[key][i]) < 6) {
           if (this.board[t]) {
             if (key.includes(this.board[t])) return true;
             // pawns get special treatment
             if (this.board[t] === pawn &&
-              (kingSquare === t + pawnSteps[0] ||
-              kingSquare === t + pawnSteps[1])) {
+              (square === t + pawnSteps[0] ||
+              square === t + pawnSteps[1])) {
               return true;
             }
             break;
@@ -439,5 +507,15 @@ export default class Position {
       }
     }
     return false;
+  }
+
+  // Used as keys in table for previously visited positions.
+  toString() {
+    let result = '';
+    for (let i = 0; i < 64; i++) {
+      if (this.board[i]) result += this.board[i];
+      else result += ' ';
+    }
+    return result;
   }
 }

@@ -4,7 +4,6 @@
  * @flow
  */
 
-import Engine from './';
 import Position, { A1, H8 } from './Position';
 import { Cwf } from './tp'
 import { PIECE } from './evaluation';
@@ -30,7 +29,7 @@ type Entry = {
   pv: Pv, // moves previously beat alpha, from worst to best
   score: number,
   depth: number,
-  fail: 'L' | 'E' | 'H'
+  fail: 'L' | 'E' | 'H' | 'I'
 };
 
 const tp: Cwf<Entry> = new Cwf(1e7);
@@ -72,19 +71,10 @@ function forMoves(pos: Position, pv: Pv,
   }
 }
 
-// Used for looking for invalid moves one depth away while being efficient
-function lastPly(pos: Position, alpha, beta) {
-  forMoves(pos, [], (move, promo) => {
-    const nextScore = pos.score + pos.value(move, promo);
-    if (nextScore > alpha) {
-      if (nextScore >= beta) {
-        alpha = beta;
-        return true;
-      } else alpha = nextScore;
-    }
-    return false;
-  });
-  return alpha;
+// Check if pos is an invalid position
+function invalidPos(pos: Position) {
+  if (pos.inCheck(next(pos.turn))) return true;
+  return (pos.kp !== -1 && pos.inCheck(next(pos.turn), pos.kp));
 }
 
 // Main algorithm
@@ -159,7 +149,8 @@ function alphaBeta(
         // test all moves
         forMoves(pos, pv, (move, promo) => {
           const nextPos = pos.move(move, promo);
-          // if this move got rid of the check threat
+          // if this move got rid of the check threat (if the move after
+          // can't take king)
           if (!nextPos.inCheck(pos.turn)) {
             return handleMove(move, promo, -alphaBeta(nextPos, depth - 1, -beta, -alpha));
           } else return false;
@@ -170,10 +161,20 @@ function alphaBeta(
         return beta;
       }
     } else if (pos.score + PIECE.Q < alpha) {
-      if (pos.inCheck(next(pos.turn))) return beta; // if you can take king...
+      if (invalidPos(pos)) {
+        entry.fail = I;
+        return beta; // king take or invalid castle
+      }
       return alpha; // delta pruning
     } else {
       forMoves(pos, pv, (move, promo) => {
+        // check if there was an invalid castle
+        if (pos.kp !== -1 && Math.abs(pos.kp - move[1]) < 2) {
+          alpha = beta;
+          entry.fail = I;
+          return true;
+        }
+
         // don't test silent moves
         if (!pos.board[move[1]] && move[1] !== pos.ep) return false;
 
