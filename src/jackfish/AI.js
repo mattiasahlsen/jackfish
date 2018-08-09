@@ -23,13 +23,12 @@ const SEARCH_MARGIN = 50;
 const L = 'L';
 const E = 'E';
 const H = 'H';
-const I = 'I';
 
 type Entry = {
   pv: Pv, // moves previously beat alpha, from worst to best
   score: number,
   depth: number,
-  fail: 'L' | 'E' | 'H' | 'I'
+  fail: 'L' | 'E' | 'H'
 };
 
 const tp: Cwf<Entry> = new Cwf(1e7);
@@ -71,12 +70,6 @@ function forMoves(pos: Position, pv: Pv,
   }
 }
 
-// Check if pos is an invalid position
-function invalidPos(pos: Position) {
-  if (pos.inCheck(next(pos.turn))) return true;
-  return (pos.kp !== -1 && pos.inCheck(next(pos.turn), pos.kp));
-}
-
 // Main algorithm
 
 function alphaBeta(
@@ -103,8 +96,6 @@ function alphaBeta(
         case H:
           if (entry.score >= beta) return beta
           break;
-        case I: // invalid position, previous move was invalid
-          return beta; // cause beta cutoff
         default: break;
       }
     }
@@ -121,8 +112,8 @@ function alphaBeta(
 
     if (score > alpha) {
       if (score >= MAX_SCORE) {
-        alpha = beta;
-        entry.fail = I;
+        alpha = MAX_SCORE;
+        entry.fail = H
         return true;
       }
       // if this is the first move to raise alpha, reset pv
@@ -161,17 +152,18 @@ function alphaBeta(
         return beta;
       }
     } else if (pos.score + PIECE.Q < alpha) {
-      if (invalidPos(pos)) {
-        entry.fail = I;
-        return beta; // king take or invalid castle
+      if (pos.inCheck(next(pos.turn))) {
+        entry.fail = H;
+        entry.score = MAX_SCORE;
+        return MAX_SCORE; // king take or invalid castle
       }
       return alpha; // delta pruning
     } else {
       forMoves(pos, pv, (move, promo) => {
         // check if there was an invalid castle
         if (pos.kp !== -1 && Math.abs(pos.kp - move[1]) < 2) {
-          alpha = beta;
-          entry.fail = I;
+          alpha = MAX_SCORE;
+          entry.fail = H;
           return true;
         }
 
@@ -179,6 +171,12 @@ function alphaBeta(
         if (!pos.board[move[1]] && move[1] !== pos.ep) return false;
 
         const nextScore = pos.score + pos.value(move, promo);
+        // check if it's a king-take move, if it is we save a lot of time
+        if (nextScore >= MAX_SCORE) {
+          alpha = MAX_SCORE;
+          entry.fail = H;
+          return true;
+        }
 
         // delta pruning
         if ((pos.board[move[1]] || move[1] === pos.ep) && nextScore + 2 * PIECE.P >= alpha) {
@@ -193,15 +191,19 @@ function alphaBeta(
 
     // futiity pruning (use when searching deeper, not yet, need
     // to watch out for king-take moves)
-    /*if (!root && depth === 1 && pos.score + PIECE.Q < alpha) {
-      if (pos.isCheck(next(pos.turn))) return alpha;
-    }*/
+    if (!root && depth === 1 && pos.score + PIECE.Q < alpha) {
+      if (pos.inCheck(next(pos.turn))) {
+        entry.score = MAX_SCORE;
+        entry.fail = H
+        return MAX_SCORE; // if you can take king
+      }
+      return alpha;
+    }
 
     // don't do nullmove at root
     let score;
     if (!root) {
       score = -alphaBeta(pos.nullMove(), depth - 3, -beta, -alpha);
-      // score is NaN, this if-statement will fail
       if (score >= beta) {
         entry.score = beta;
         entry.fail = H;
@@ -211,7 +213,14 @@ function alphaBeta(
 
     forMoves(pos, pv, (move, promo) => {
       const nextScore = pos.score + pos.value(move, promo);
-      // futility pruning
+      // check if it's a king-take move or if the previous move was an invalid
+      // castle, if it is we save a lot of time
+      if (nextScore >= MAX_SCORE) {
+        alpha = MAX_SCORE;
+        entry.fail = H;
+        return true;
+      }
+
       if (depth === 1 && nextScore + 2 * PIECE.P < alpha) return false;
 
       return handleMove(move, promo, -alphaBeta(pos.move(move, promo, -nextScore), depth - 1, -beta, -alpha));
@@ -220,7 +229,7 @@ function alphaBeta(
 
   // could only have gotten a better score, we got interrupted
   if (timeout()) {
-    if (entry.fail !== I) entry.fail = H;
+    entry.fail = H;
   }
 
   // alpha should have been changed to beta on beta cutoff

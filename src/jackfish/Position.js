@@ -465,13 +465,14 @@ export default class Position {
 
   /** Returns true if color is in check. If square is provided,
       checks if that square is threatened. */
-  inCheck(color: Color = this.turn, square?: number): boolean {
+  inCheck(color: Color = this.turn): boolean {
     let mySteps; // steps for different pieces
     let pawnSteps;
     let pawn;
+    let kingSquare;
     if (color === WHITE) {
       // square position of king
-      if (square === undefined) square = this.board.indexOf('K');
+      kingSquare = this.board.indexOf('K');
 
       mySteps = {
         'bq': steps.B,
@@ -481,7 +482,7 @@ export default class Position {
       pawn = 'p';
       pawnSteps = [S + W, S + E];
     } else {
-      if (square === undefined) this.board.indexOf('k');
+      kingSquare = this.board.indexOf('k');
 
       mySteps = {
         'BQ': steps.B,
@@ -495,14 +496,14 @@ export default class Position {
     // search all steps for all pieces
     for (const key in mySteps) {
       for (let i = 0; i < mySteps[key].length; i++) {
-        let t = square + mySteps[key][i];
+        let t = kingSquare + mySteps[key][i];
         while (t >= 0 && t <= 63 && colDif(t, t - mySteps[key][i]) < 6) {
           if (this.board[t]) {
             if (key.includes(this.board[t])) return true;
             // pawns get special treatment
             if (this.board[t] === pawn &&
-              (square === t + pawnSteps[0] ||
-              square === t + pawnSteps[1])) {
+              (kingSquare === t + pawnSteps[0] ||
+              kingSquare === t + pawnSteps[1])) {
               return true;
             }
             break;
