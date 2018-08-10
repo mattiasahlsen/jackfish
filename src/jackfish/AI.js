@@ -4,17 +4,17 @@
  * @flow
  */
 
-import Engine from './';
+// import Engine from './';
 import Position, { A1, H8 } from './Position';
 import { Cwf } from './tp'
 import { PIECE } from './evaluation';
 import { next } from './helpers';
-
 import { PIECES } from './declarations';
-import type { Move, Piece } from './declarations';
+
+import type { Move, Piece, History, Hash } from './declarations';
 
 // best moves for a position in reverse order
-type Pv = Array<[Move, Piece]>;
+type Pv = [Move, Piece | void] | void;
 
 // Constants and types.
 
@@ -37,6 +37,21 @@ type Entry = {
 };
 
 const tp: Cwf<Entry> = new Cwf(1e7);
+const boardTable: any = new Cwf(1e3); // table to find repeated positions
+
+// adding methods to this
+boardTable.push = function(hash: Hash) {
+  let count = this.get(hash); // if this position has been visited before
+  if (count !== undefined) this.add(hash, count + 1);
+  else this.add(hash, 1);
+}
+boardTable.pull = function(hash: Hash) {
+  let count = this.get(hash); // if this position has been visited before
+  if (count !== undefined && count > 0) this.add(hash, count - 1);
+}
+
+const aHash = new Position('4Q3/1p1r2pk/2q5/p2p4/P6R/5P1P/6P1/7K b - - 2 33').boardHash;
+boardTable.push(aHash);
 
 // Logs
 let tpHits = 0;
@@ -54,15 +69,16 @@ const timeout = () => Date.now() > timeLimit && gotMove;
 // generated, else false.
 function forMoves(pos: Position, pv: Pv,
   callback: (move: Move, promo?: Piece, tp: ?Piece) => boolean): void {
-  for (let i = pv.length - 1; i >= 0; i--) {
-    const move = pv[i][0];
+  if (pv) {
+    const move = pv[0];
     let tp;
     if (move[1] === pos.ep) {
       if (pos.board[move[0]] === 'P') tp = pos.board[pos.ep + 8];
-      else tp = pos.board[pos.ep - 8];
+      else if (pos.board[move[0]] === 'p') tp = pos.board[pos.ep - 8];
+      else tp = pos.board[move[1]];
     } else tp = pos.board[move[1]];
 
-    if (callback(pv[i][0], pv[i][1], tp)) return; // move, promo
+    if (callback(pv[0], pv[1], tp)) return; // move, promo
   }
 
   const moves = pos.genMoves();
@@ -149,6 +165,7 @@ function getPieces(pos: Position) {
 
 // Main algorithm
 
+// generic alpha-beta algorithm, doesn't assume mtd(f) search
 function alphaBeta(
   pos: Position,
   depth: number,
@@ -157,16 +174,22 @@ function alphaBeta(
   pieces: Object,
   root: boolean = false): number {
   searched++;
-  let pv = []; // default
 
+  //if (pos.boardHash[0] === aHash[0] && pos.boardHash[1] === aHash[1]) debugger;
+
+  // draw
   if (pos.halfMoveClock >= 50) {
-    // no point in saving an entry in transposition table
-    return 0; // stalemate
+    return 0;
   }
+  if (boardTable.get(pos.boardHash) >= 3) {
+    return 0;
+  }
+
   let stalemate = true; // true until proven otherwise
+  let pv: Pv; // default
 
   // look up in tp
-  let entry: any = tp.get(pos.hash);
+  let entry: any = tp.get(pos.hash); // previous entry
   if (entry) {
     pv = entry.pv;
     if (entry.depth >= depth) {
@@ -200,7 +223,7 @@ function alphaBeta(
   }
 
   // Callback helper
-  const handleMove = (move, promo, score) => {
+  const handleMove = (move, promo?, score) => {
     // if time's out
     if (timeout()) return true;
 
@@ -210,12 +233,10 @@ function alphaBeta(
         entry.fail = H
         return true;
       }
+
       stalemate = false; // my move was valid
+      entry.pv = [move, promo]; // new pv
 
-      // if this is the first move to raise alpha, reset pv
-      if (entry.fail === L) entry.pv = [];
-
-      entry.pv.push([move, promo]);
       if (score >= beta) {
         alpha = beta;
         entry.fail = H;
@@ -238,12 +259,15 @@ function alphaBeta(
 
         // test all moves
         forMoves(pos, pv, (move, promo, tp) => {
+          // tp here is target piece, not transposition table
           const nextPos = pos.move(move, promo);
           // if this move got rid of the check threat (if the move after
           // can't take king)
           if (!nextPos.inCheck(pos.turn)) {
-            return handleMove(move, promo, -alphaBeta(nextPos, depth - 1,
-              -beta, -alpha, pieces.new(tp)));
+            boardTable.push(nextPos.boardHash);
+            const score = -alphaBeta(nextPos, depth - 1, -beta, -alpha, pieces.new(tp));
+            boardTable.pull(nextPos.boardHash);
+            return handleMove(move, promo, score);
           } else return false;
         });
       } else if (endgame && inStalemate(pos)) {
@@ -289,7 +313,11 @@ function alphaBeta(
         // delta pruning
         if ((pos.board[move[1]] || move[1] === pos.ep) && nextScore + 2 * PIECE.P >= alpha) {
           // passes margin and not silent positon, search deeper
-          return handleMove(move, promo, -alphaBeta(pos.move(move, promo, -nextScore), depth - 1, -beta, -alpha, pieces.new(tp)));
+          const nextPos = pos.move(move, promo, -nextScore);
+          boardTable.push(nextPos.boardHash);
+          const score = -alphaBeta(nextPos, depth - 1, -beta, -alpha, pieces.new(tp));
+          boardTable.pull(nextPos.boardHash);
+          return handleMove(move, promo, score);
         }
         return false; // let forMoves() keep running
       });
@@ -336,7 +364,11 @@ function alphaBeta(
 
       if (depth === 1 && nextScore + 2 * PIECE.P < alpha) return false;
 
-      return handleMove(move, promo, -alphaBeta(pos.move(move, promo, -nextScore), depth - 1, -beta, -alpha, pieces.new()));
+      const nextPos = pos.move(move, promo, -nextScore);
+      boardTable.push(nextPos.boardHash);
+      const score = -alphaBeta(nextPos, depth - 1, -beta, -alpha, pieces.new());
+      boardTable.pull(nextPos.boardHash);
+      return handleMove(move, promo, score);
     });
   }
 
@@ -388,41 +420,48 @@ function mtdf(pos: Position, depth: number, guess: number): number {
 
 // Assumes there are valid moves.
 // @param time How many milliseconds to think. Min: 1000 Max. 60000
-export default function move(pos: Position, time: number = 5000): [Move, Piece] | null {
+export default function move(pos: Position,
+  history: History,
+  time: number = 5000): [Move, Piece] | null {
   let score = pos.score;
   let entry: any;
+
+  // set up position table (for three-repeat rule)
+  boardTable.clear();
+  history.forEach(e => {
+    boardTable.push(new Position(e.fen).boardHash);
+  });
+  boardTable.push(pos.boardHash);
+
   if (time < 1000) time = 1000;
   if (time > 60000) time = 60000
 
   // timeLimit and timeOut() is defined globally higher up
-  timeLimit = Date.now() + time; // run for 5 sec
+  timeLimit = Date.now() + 5000; // run for 5 sec
 
   // iterative deepening
   let i = 1;
-  while (i < 1000 && !timeout()) {
+  while (i < 100 && !timeout()) {
     // get the tp entry from the previous depth
     if (i > 1) entry = tp.get(pos.hash);
+    console.log(entry);
     score = mtdf(pos, i, score)
     console.log('depth:' + i + ', size: ' + tp.size());
     i++;
   }
   gotMove = false; // reset this
 
-  // compare entry from the latest depth (that got interrupted most likely)
+  // compare entry from the latest depth (that got interrupted)
   // to the entry from the depth before to see which one is best
-  const deepestEntry: any = tp.get(pos.hash);
+  const deepestEntry: any = tp.get(pos.hash); // should always be a hit
+  // if we didn't even finish depth 1, entry won't be defined
   if (!entry || (deepestEntry.score > entry.score &&
-    (deepestEntry.fail === H || deepestEntry.fail === E))) entry = deepestEntry;
+    (deepestEntry.fail !== L))) entry = deepestEntry;
 
   console.log('searched: ' + searched);
   console.log('hits: ' + tpHits + '\n');
   tpHits = 0;
   tp.clear();
 
-  if (!entry) return null;
-  while ((entry: any).pv.length > 0) {
-    let move = (entry: any).pv.pop(); // [move, promo]
-    if (pos.valid(move[0])) return move;
-  }
-  return null;
+  return entry.pv;
 }

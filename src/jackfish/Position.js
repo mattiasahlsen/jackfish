@@ -3,9 +3,10 @@
  * @flow
  */
 
-import { isColor, sameColor, next, colDif, rowDif } from './helpers';
+import { isColor, sameColor, next, colDif, rowDif,
+  parse, squareToString } from './helpers';
 import evaluate, { pst } from './evaluation';
-import { WHITE } from './declarations';
+import { WHITE, BLACK } from './declarations';
 import { hash, hashes } from './tp';
 
 import type { Color, Board, Piece, Move, CR, Hash } from './declarations';
@@ -59,26 +60,90 @@ export default class Position {
   boardHash: Hash;
 
   constructor(
-    board: Board,
-    turn: Color,
-    wc: CR, // white castling rights
-    bc: CR, // black...
-    ep: number, // -1 if there is none
-    kp: number, // -1 if there is none
+    boardOrFen: Board | string,
+    turn: Color = WHITE,
+    wc: CR = [true, true], // white castling rights
+    bc: CR = [true, true], // black...
+    ep: number = -1, // -1 if there is none
+    kp: number = -1, // -1 if there is none
     halfMoveClock: number = 0, // defaults to 0
 
     // Score for color to move. If none is provided, calculates it from scratch.
     score?: number,
     myHash?: Hash,
     boardHash?: Hash,
-  ) { // if none is provided, calculates it from scratch
-    // just copy all the parameters to fields.
-    this.turn = turn;
-    this.board = board;
-    this.wc = wc;
-    this.bc = bc;
-    this.ep = ep;
-    this.kp = kp;
+  ) {
+    // if we get a fen string: assumes it's a valid fen string
+    if (typeof boardOrFen === 'string') {
+      const fen = boardOrFen;
+      this.board = [];
+      this.wc = [false, false];
+      this.bc = [false, false];
+      this.ep = -1;
+      this.kp = -1;
+
+      const subs = fen.trim().split(/ +/); // get substrings
+
+      let pos = 0; // current board position (square)
+      let i = 0; // index of string
+      // The board array is indexed the same way as FEN notation.
+      while (i < subs[0].length) {
+        let c = subs[0].charAt(i); // currently parsed char
+        const num = parseInt(c);
+        if (Number.isInteger(num)) {
+          for (let j = 0; j < num; j++) {
+            this.board[pos + j] = null;
+          }
+          pos += num;
+        } else {
+          // Cast to piece when we know it is one.
+          c = ((c: any): Piece)
+          this.board[pos] = c;
+          pos++;
+        }
+        i++;
+        if (pos >= 64) break; // should not be able to be bigger than 64
+        else if (pos % 8 === 0) {
+          i++;
+        }
+      }
+
+      switch (subs[1]) {
+        case 'w': this.turn = WHITE; break;
+        case 'b': this.turn = BLACK; break;
+        default: throw new Error('Invalid fen string');
+      }
+
+      if (subs[2] !== '-') {
+        const used = [];
+        for (let i = 0; i < subs[2].length; i++) {
+          const c = subs[2].charAt(i);
+          switch (c) {
+            case 'Q': this.wc[0] = true; break;
+            case 'K': this.wc[1] = true; break;
+            case 'q': this.bc[1] = true; break;
+            case 'k': this.bc[0] = true; break;
+            default: throw new Error('Invalid fen string');
+          }
+          used.push(c);
+        }
+      }
+
+      if (subs[3] !== '-') this.ep = parse(subs[3]);
+
+      this.halfMoveClock = parseInt(subs[4]);
+    } else {
+      // else just copy all the parameters to fields.
+      this.board = boardOrFen;
+      this.turn = turn;
+      this.wc = wc;
+      this.bc = bc;
+      this.ep = ep;
+      this.kp = kp;
+
+      if (halfMoveClock !== undefined) this.halfMoveClock = halfMoveClock;
+      else this.halfMoveClock = 0;
+    }
 
     if (score !== undefined) this.score = score;
     else {
@@ -90,9 +155,6 @@ export default class Position {
     else this.hash = hash((this: any));
     if (boardHash !== undefined) this.boardHash = boardHash;
     else this.boardHash = this.hashBoard();
-
-    if (halfMoveClock !== undefined) this.halfMoveClock = halfMoveClock;
-    else this.halfMoveClock = 0;
   }
 
   /**
@@ -307,8 +369,8 @@ export default class Position {
       newHash[1] ^= hashParam[1];
     }
     const applyBoardHash = (hashParam: Hash) => {
-      newBoardHash[0] ^= newBoardHash[0];
-      newBoardHash[1] ^= newBoardHash[1];
+      newBoardHash[0] ^= hashParam[0];
+      newBoardHash[1] ^= hashParam[1];
     }
 
     // switch turn
@@ -399,7 +461,6 @@ export default class Position {
         }
       }
     }
-
     return [newHash, newBoardHash];
   }
 
@@ -516,13 +577,51 @@ export default class Position {
     return false;
   }
 
-  // Used as keys in table for previously visited positions.
+  // Get fen of the position (fullMove set to 1)
   toString() {
-    let result = '';
+    let fen = '';
+    let spaces = 0;
     for (let i = 0; i < 64; i++) {
-      if (this.board[i]) result += this.board[i];
-      else result += ' ';
+      if (this.board[i] === null) spaces++;
+      else {
+        if (spaces > 0) {
+          fen += spaces;
+          spaces = 0;
+        }
+        fen += this.board[i];
+      }
+      if (i % 8 === 7) {
+        if (spaces > 0) {
+          fen += spaces;
+          spaces = 0;
+        }
+        if (i < 63) fen += '/';
+      }
     }
-    return result;
+
+    fen += ' ';
+    if (this.turn === WHITE) fen += 'w';
+    else fen += 'b';
+
+    fen += ' ';
+    if (!this.wc[0] && !this.wc[1] && !this.bc[0] && !this.bc[1]) fen += '-';
+    else {
+      if (this.wc[1]) fen += 'K';
+      if (this.wc[0]) fen += 'Q';
+      if (this.bc[1]) fen += 'k';
+      if (this.bc[0]) fen += 'q';
+    }
+
+    fen += ' ';
+    if (this.ep !== -1) fen += squareToString(this.ep);
+    else fen += '-';
+
+    fen += ' ';
+    fen += this.halfMoveClock;
+
+    fen += ' ';
+    fen += 1; // fullMove
+
+    return fen;
   }
 }

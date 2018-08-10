@@ -18,7 +18,7 @@ import Position from './Position';
 import { rank, parse, squareToString, equalBoards } from './helpers';
 import aimove from './AI';
 
-import type { Board, Piece, Move, CR } from './declarations';
+import type { Board, Piece, Move, CR, History } from './declarations';
 
 /*
 The board is represented as an array with indexes like this:
@@ -91,7 +91,7 @@ const defaultConfig: Config = {
  */
 export default class Engine {
   config: Config = defaultConfig;
-  history: Array<{fen: string, move: Move}> = [];
+  history: History = [];
   position: Position;
   halfMoveClock: number; // keep this here to keep Position class simpler
   fullMove: number; // full move number we're on (starts at 1)
@@ -405,7 +405,7 @@ export default class Engine {
     // This implies that there are valid moves to be made.
     if (this.winner() !== null) return null;
 
-    const move = aimove(this.position, time);
+    const move = aimove(this.position, this.history, time);
     if (move) {
       this.move(move[0][0], move[0][1], move[1]);
       return move[0];

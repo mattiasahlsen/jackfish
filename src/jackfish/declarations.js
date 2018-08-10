@@ -21,8 +21,9 @@ export type Board = Array<Piece | null>;
 export type Move = [number, number]; // [from, to]
 export type CR = [boolean, boolean]; // castling rights [queenside, kingside]
 
+export type Hash = [number, number];
+export type History = Array<{fen: string, move: Move}>;
+
 // used for testing
 export type PieceObj = {| pos: number, piece: Piece |};
 export type Pieces = Array<PieceObj>;
-
-export type Hash = [number, number];
