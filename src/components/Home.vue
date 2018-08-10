@@ -37,7 +37,6 @@ import { WHITE, BLACK } from '@/jackfish/declarations';
 import { rank, parse } from '@/jackfish/helpers';
 
 const game = new Engine();
-game.setPos('3r2k1/1p4p1/2qr4/p2p3Q/P7/5P1P/6P1/3RR2K w - - 5 30');
 
 export default {
   name: 'Home',

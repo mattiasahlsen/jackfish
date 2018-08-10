@@ -39,7 +39,7 @@ type Entry = {
 const tp: Cwf<Entry> = new Cwf(1e7);
 const boardTable: any = new Cwf(1e3); // table to find repeated positions
 
-// adding methods to this
+// add methods to boardTable
 boardTable.push = function(hash: Hash) {
   let count = this.get(hash); // if this position has been visited before
   if (count !== undefined) this.add(hash, count + 1);
@@ -50,8 +50,30 @@ boardTable.pull = function(hash: Hash) {
   if (count !== undefined && count > 0) this.add(hash, count - 1);
 }
 
-const aHash = new Position('4Q3/1p1r2pk/2q5/p2p4/P6R/5P1P/6P1/7K b - - 2 33').boardHash;
-boardTable.push(aHash);
+// Data structure for storing killer moves (not pawn promotions)
+class Killer {
+  origins: { [number]: { [number]: boolean } } = {};
+  constructor() {
+    return this;
+  }
+
+  add(move: Move) {
+    if (this.origins[move[0]]) this.origins[move[0]][move[1]] = true;
+    else {
+      this.origins[move[0]] = {};
+      this.origins[move[0]][move[1]] = true;
+    }
+  }
+
+  forEach(pos, callBack: (move: Move, tp: ?Piece) => boolean) {
+    for (const o in this.origins) {
+      for (const t in this.origins[o]) {
+        // TODO: Implement pseudo valid method on Position class and use
+        // here, then if it is pseudo-valid, call callback with the move
+      }
+    }
+  }
+}
 
 // Logs
 let tpHits = 0;
@@ -175,8 +197,6 @@ function alphaBeta(
   root: boolean = false): number {
   searched++;
 
-  //if (pos.boardHash[0] === aHash[0] && pos.boardHash[1] === aHash[1]) debugger;
-
   // draw
   if (pos.halfMoveClock >= 50) {
     return 0;
@@ -199,7 +219,7 @@ function alphaBeta(
           if (entry.score <= alpha) return alpha;
           break;
         case E:
-          return Math.min(Math.max(entry.score, alpha), beta)
+          return entry.score;
         case H:
           if (entry.score >= beta) return beta
           break;
