@@ -13,7 +13,8 @@
     "lint": "eslint --ext .js,.vue src test/unit test/e2e/specs",
     "build": "node build/build.js",
     "gen-doc": "npx documentation build src/jackfish/index.js -f html --shallow -o docs",
-    "benchmarks": "BABEL_ENV=test npx babel-node test/benchmarks.js"
+    "benchmarks": "BABEL_ENV=test npx babel-node test/benchmarks.js",
+    "deploy": "git subtree push --prefix dist origin gh-pages"
   },
   "dependencies": {
     "benchmark": "^2.1.4",
