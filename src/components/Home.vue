@@ -116,6 +116,7 @@
       <br>
       <a href="https://github.com/thomasahle/sunfish">https://github.com/thomasahle/sunfish</a>
     </div>
+    <p class="created-by">Created by Mattias Ahlsén</p>
   </div>
 </template>
 
@@ -298,5 +299,10 @@ export default {
   padding: 5px;
   float: left;
   width: 100%;
+}
+.created-by {
+  display: inline-block;
+  float: right;
+  margin-right: 10px;
 }
 </style>
