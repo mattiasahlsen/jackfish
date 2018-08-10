@@ -82,6 +82,21 @@
           </a>
         </li>
         <li class="list-group-item">
+          <a href="https://chessprogramming.wikispaces.com/MTD%28f%29">
+            MTD(f)
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://chessprogramming.wikispaces.com/Alpha-Beta">
+            Alpha-beta
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://chessprogramming.wikispaces.com/Iterative+Deepening">
+            Iterative deepening
+          </a>
+        </li>
+        <li class="list-group-item">
           <a href="https://chessprogramming.wikispaces.com/Transposition%20Table#KeyCollisions">
             Transposition table
           </a>

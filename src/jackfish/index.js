@@ -71,7 +71,7 @@ type Config = {
 
 const defaultConfig: Config = {
   startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-  searchTime: 5,
+  searchTime: 4,
 };
 
 /**
@@ -81,6 +81,8 @@ const defaultConfig: Config = {
  * @param options Configuration object.
  * @param {string}
  * [options.startPos='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']
+ * @param {number}
+ * [options.searchTime=4]
  * See {@link Options}.
  *
  * @return {Engine}
@@ -410,7 +412,7 @@ export default class Engine {
     if (this.winner() !== null) return;
 
     const move = await aimove(this.position, this.history,
-      this.config.searchTime, this.aiInfo, this.config.betweenDepths);
+      this.config.searchTime * 1000, this.aiInfo, this.config.betweenDepths);
     if (move) {
       this.move(move[0][0], move[0][1], move[1]);
 
