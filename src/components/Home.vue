@@ -15,15 +15,20 @@
       <button type="button" class="btn btn-light" @click="undoMove">
         Undo move
       </button>
-      <br>
       <button type="button" class="btn btn-light" @click="restart">
         Restart
       </button>
 
       <div class="data">
-        <p> Depth: {{aiInfo.depth}}</p>
-        <p> Nodes searched: {{aiInfo.searched}}</p>
-        <p> Hits in transposition table: {{aiInfo.tpHits}}</p>
+        <p><strong>Depth:</strong> {{aiInfo.depth}}</p>
+        <p><strong>Nodes searched:</strong> {{aiInfo.searched}}</p>
+        <p><strong>Hits in transposition table:</strong> {{aiInfo.tpHits}}</p>
+      </div>
+
+      <div class="fen">
+        <div><input v-model="fen"></div>
+        <button class="btn btn-dark" @click="setPos">Set position</button>
+        <p v-if="invalidFen" class="text-danger">Invalid FEN string</p>
       </div>
     </div>
 
@@ -31,6 +36,62 @@
       :color="promotion.color" @done="handlePromotion">
     </Promotion>
     <div id="board" ref="board" @click="cancel">
+    </div>
+
+    <div class="links">
+      <h3>About</h3>
+      <p>
+        This is a chess engine I've built in javascript. The "AI" uses
+        <a href="https://chessprogramming.wikispaces.com/MTD%28f%29">mtd(f)</a>.
+        See more below.
+      </p>
+      <a class="btn btn-primary btn-lg" href="https://github.com/mattiasahlsen/jackfish/" role="button">
+        Github repo
+      </a>
+    </div>
+
+    <div class="about mt-4 mb-4">
+      <h4 class="mt-3">Features</h4>
+      <ul class="list-group">
+        <li class="list-group-item">
+          <a href="https://chessprogramming.wikispaces.com/Simplified+evaluation+function">
+            Piece-square table evaluation
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://chessprogramming.wikispaces.com/Transposition%20Table#KeyCollisions">
+            Transposition table
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://chessprogramming.wikispaces.com/Quiescence+Search">
+            Quiescence search
+          </a>
+        <li class="list-group-item">
+          <a href="https://chessprogramming.wikispaces.com/delta+pruning">
+            Delta pruning
+          </a>
+        </li>
+      </ul>
+
+      <h4 class="mt-3">To be implemented</h4>
+      <ul class="list-group">
+        <li class="list-group-item">
+          <a href="https://chessprogramming.wikispaces.com/Killer+Move">
+            Killer heuristic
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://chessprogramming.wikispaces.com/Pawn%20Structure">
+            Pawn structure evaluation
+          </a>
+        </li>
+      </ul>
+
+      <h4 class="mt-3">Credits to</h4>
+      <a href="https://chessprogramming.wikispaces.com/">https://chessprogramming.wikispaces.com/</a>
+      <br>
+      <a href="https://github.com/thomasahle/sunfish">https://github.com/thomasahle/sunfish</a>
     </div>
   </div>
 </template>
@@ -47,6 +108,7 @@ import { WHITE, BLACK } from '@/jackfish/declarations';
 import { rank, parse } from '@/jackfish/helpers';
 
 const game = new Engine();
+const dummyGame = new Engine(); // used for it's methods
 
 export default {
   name: 'Home',
@@ -60,14 +122,20 @@ export default {
       promotion: null,
       winner: game.winner(),
       aiInfo: game.aiInfo,
-      depth: 0,
+
+      fen: game.fen(),
     };
+  },
+  computed: {
+    invalidFen() {
+      return !dummyGame.setPos(this.fen);
+    }
   },
   watch: {
     'game.position.board': function() {
       this.board.position(this.game.fen(), false);
       this.winner = this.game.winner();
-      console.log(this.game.fen());
+      this.fen = this.game.fen();
     },
     'game.position.turn': function() {
       if (this.game.turn() === 'black' && this.game.winner() === null) {
@@ -139,6 +207,9 @@ export default {
     },
     restart() {
       this.game.restart();
+    },
+    setPos() {
+      if (this.game.setPos(this.fen)) this.fen = this.game.fen();
     }
   },
 }
@@ -168,5 +239,24 @@ export default {
 
 .data {
   margin-top: 30px;
+}
+.fen {
+  margin-top: 30px;
+}
+.fen input {
+  width: 90%;
+  margin-bottom: 10px;
+}
+
+.links {
+  float: left;
+  width: 25%;
+  padding: 5px;
+}
+
+.about {
+  padding: 5px;
+  float: left;
+  width: 100%;
 }
 </style>
