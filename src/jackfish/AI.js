@@ -289,6 +289,8 @@ function alphaBeta(
         entry.fail = E;
         return 0;
       }
+      // Might wanna try moves that check here later.
+
       return alpha; // delta pruning
     } else {
       forMoves(pos, pv, (move, promo, tp) => {
@@ -300,7 +302,8 @@ function alphaBeta(
         }
 
         // don't test silent moves
-        if (!pos.board[move[1]] && move[1] !== pos.ep) return false;
+        if (!pos.board[move[1]] && !(move[1] === pos.ep &&
+          'Pp'.includes((pos.board[move[0]]: any)))) return false;
 
         const nextScore = pos.score + pos.value(move, promo);
         // check if it's a king-take move, if it is we save a lot of time
