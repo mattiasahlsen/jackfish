@@ -60,12 +60,14 @@ export type Options = {
   startPos?: string,
   fiftyMoveRule?: boolean,
   threefoldRepetition?: boolean,
+  betweenDepths?: () => Promise<any>,
 };
 
 type Config = {
   startPos: string,
   fiftyMoveRule: boolean,
   threefoldRepetition: boolean,
+  betweenDepths?: () => Promise<any>,
 };
 
 const defaultConfig: Config = {
@@ -95,6 +97,18 @@ export default class Engine {
   position: Position;
   halfMoveClock: number; // keep this here to keep Position class simpler
   fullMove: number; // full move number we're on (starts at 1)
+
+  aiInfo: {
+    depth: number,
+    searched: number,
+    tpHits: number,
+  } = ({
+    depth: 0,
+    searched: 0,
+    tpHits: 0,
+  }: any);
+
+  betweenDepths: () => Promise<any>;
 
   constructor(options?: Options) {
     if (options) this.configure(options);
@@ -401,14 +415,16 @@ export default class Engine {
    * @param [time=5000] Time to think in milliseconds. Min-value: 1000.
    * @return The move that was made.
    */
-  aiMove(time: number = 5000): Move | null {
+  async aiMove(time: number = 5000): Promise<[Move, Piece | void] | void> {
     // This implies that there are valid moves to be made.
-    if (this.winner() !== null) return null;
+    if (this.winner() !== null) return;
 
-    const move = aimove(this.position, this.history, time);
+    const move = await aimove(this.position, this.history, time, this.aiInfo,
+      this.config.betweenDepths);
     if (move) {
       this.move(move[0][0], move[0][1], move[1]);
-      return move[0];
+
+      return move;
     } else throw new Error('The AI failed to make a move');
   }
 

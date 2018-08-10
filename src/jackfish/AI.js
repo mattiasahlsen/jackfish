@@ -50,6 +50,7 @@ boardTable.pull = function(hash: Hash) {
   if (count !== undefined && count > 0) this.add(hash, count - 1);
 }
 
+/* eslint-disable */
 // Data structure for storing killer moves (not pawn promotions)
 class Killer {
   origins: { [number]: { [number]: boolean } } = {};
@@ -74,6 +75,7 @@ class Killer {
     }
   }
 }
+/* eslint-enable */
 
 // Logs
 let tpHits = 0;
@@ -443,14 +445,15 @@ function mtdf(pos: Position, depth: number, guess: number): number {
 
 // Assumes there are valid moves.
 // @param time How many milliseconds to think. Min: 1000 Max. 60000
-export default function move(pos: Position,
+export default async function move(pos: Position,
   history: History,
-  time: number = 5000): [Move, Piece] | null {
+  time: number = 5000,
+  logs: Object,
+  betweenDepths?: () => Promise<any>): Promise<[Move, Piece | void]> {
   let score = pos.score;
   let entry: any;
 
   // set up position table (for three-repeat rule)
-  boardTable.clear();
   history.forEach(e => {
     boardTable.push(new Position(e.fen).boardHash);
   });
@@ -462,17 +465,26 @@ export default function move(pos: Position,
   // timeLimit and timeOut() is defined globally higher up
   timeLimit = Date.now() + 5000; // run for 5 sec
 
+  // reset logging information
+  logs.searched = 0;
+  logs.tpHits = 0;
+
   // iterative deepening
   let i = 1;
   while (i < 100 && !timeout()) {
+    logs.depth = i;
+    if (betweenDepths) await betweenDepths();
+
     // get the tp entry from the previous depth
     if (i > 1) entry = tp.get(pos.hash);
-    console.log(entry);
     score = mtdf(pos, i, score)
-    console.log('depth:' + i + ', size: ' + tp.size());
     i++;
+    logs.searched = searched;
+    logs.tpHits = tpHits;
   }
   gotMove = false; // reset this
+  searched = 0;
+  tpHits = 0;
 
   // compare entry from the latest depth (that got interrupted)
   // to the entry from the depth before to see which one is best
@@ -481,10 +493,10 @@ export default function move(pos: Position,
   if (!entry || (deepestEntry.score > entry.score &&
     (deepestEntry.fail !== L))) entry = deepestEntry;
 
-  console.log('searched: ' + searched);
-  console.log('hits: ' + tpHits + '\n');
-  tpHits = 0;
-  tp.clear();
+  console.log('searched: ' + logs.searched);
+  console.log('hits: ' + logs.tpHits + '\n');
 
+  tp.clear();
+  boardTable.clear();
   return entry.pv;
 }

@@ -15,6 +15,16 @@
       <button type="button" class="btn btn-light" @click="undoMove">
         Undo move
       </button>
+      <br>
+      <button type="button" class="btn btn-light" @click="restart">
+        Restart
+      </button>
+
+      <div class="data">
+        <p> Depth: {{aiInfo.depth}}</p>
+        <p> Nodes searched: {{aiInfo.searched}}</p>
+        <p> Hits in transposition table: {{aiInfo.tpHits}}</p>
+      </div>
     </div>
 
     <Promotion v-if="promotion" :pos="promotion.pos" :board="$refs.board"
@@ -49,21 +59,34 @@ export default {
       game: game,
       promotion: null,
       winner: game.winner(),
+      aiInfo: game.aiInfo,
+      depth: 0,
     };
   },
   watch: {
     'game.position.board': function() {
       this.board.position(this.game.fen(), false);
       this.winner = this.game.winner();
-      console.log(game.fen());
+      console.log(this.game.fen());
     },
     'game.position.turn': function() {
       if (this.game.turn() === 'black' && this.game.winner() === null) {
         setTimeout(() => this.game.aiMove(5000), 100);
       }
+    },
+
+    'game.aiInfo': {
+      handler: function(val) { this.aiInfo = val; }, deep: true
     }
   },
   mounted () {
+    this.game.configure({
+      betweenDepths: () => {
+        // nothing else works to force a re-render... Vue seems to be bugged.
+        return new Promise(resolve => setTimeout(resolve, 10));
+      },
+    })
+
     const onDragStart = (src, piece) => {
       return (piece.charAt(0) === 'w' ? WHITE : BLACK) === this.game.position.turn &&
       this.winner === null;
@@ -114,6 +137,9 @@ export default {
       this.game.undoMove();
       if (game.position.turn === BLACK) this.game.undoMove();
     },
+    restart() {
+      this.game.restart();
+    }
   },
 }
 </script>
@@ -138,5 +164,9 @@ export default {
 }
 .black {
   color: #333333;
+}
+
+.data {
+  margin-top: 30px;
 }
 </style>
