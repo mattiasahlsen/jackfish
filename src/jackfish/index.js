@@ -16,7 +16,7 @@ type Square = number | string;
 import { PIECES, BLACK, WHITE } from './declarations';
 import Position from './Position';
 import { rank, parse, squareToString, equalBoards } from './helpers';
-import aimove from './AI';
+import aimove, { getPieces } from './AI';
 
 import type { Board, Piece, Move, CR, History } from './declarations';
 
@@ -46,34 +46,32 @@ King: 'K' and 'k'
 /**
  * Configuration object for the engine.
  * @name Options
- * @property {string?} startPos The FEN string of the starting position.
- * @property {boolean?} fiftyMoveRule Use the fifty-move rule.
- * @property {boolean?} threefoldRepetition Use the threefold repetition rule.
+ * @property {string?}   startPos     The FEN string of the starting position.
+ * @property {Function?} betweenDepth Async function that returns a promise,
+ *                                    that runs between every depth of the AI
+ *                                    searches.
+ * @property {number} searchTime      Time for the AI to search in seconds.
  * @example
  * const options = {
  *   startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-     fiftyMoveRule: true,
-     inThreefoldRepetition: true,
+     betweenDepths: ''
  * }
  */
 export type Options = {
   startPos?: string,
-  fiftyMoveRule?: boolean,
-  threefoldRepetition?: boolean,
+  searchTime?: number,
   betweenDepths?: () => Promise<any>,
 };
 
 type Config = {
   startPos: string,
-  fiftyMoveRule: boolean,
-  threefoldRepetition: boolean,
+  searchTime: number,
   betweenDepths?: () => Promise<any>,
 };
 
 const defaultConfig: Config = {
   startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-  fiftyMoveRule: true,
-  threefoldRepetition: true,
+  searchTime: 5,
 };
 
 /**
@@ -84,10 +82,6 @@ const defaultConfig: Config = {
  * @param {string}
  * [options.startPos='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']
  * See {@link Options}.
- * @param {boolean}
- * [options.fiftyMoveRule=true]
- * @param {boolean}
- * [options.threefoldRepetition=true]
  *
  * @return {Engine}
  */
@@ -95,8 +89,7 @@ export default class Engine {
   config: Config = defaultConfig;
   history: History = [];
   position: Position;
-  halfMoveClock: number; // keep this here to keep Position class simpler
-  fullMove: number; // full move number we're on (starts at 1)
+  fullMove: number;
 
   aiInfo: {
     depth: number,
@@ -221,7 +214,6 @@ export default class Engine {
     if (!(Number.isInteger(fullMove) && fullMove > 0)) return false;
 
     // if we've made it this far, we're golden
-    this.halfMoveClock = halfMoveClock;
     this.fullMove = fullMove;
     this.position = new Position(board, turn, wc, bc, ep, kp, halfMoveClock);
     this.history = [];
@@ -301,12 +293,7 @@ export default class Engine {
       } else if (!'qnrb'.includes(promo)) return false;
     }
 
-    const pos = this.position;
     if (this.valid(o, t)) {
-      if ('Pp'.includes((pos.board[o]: any)) || pos.board[t] !== null || t === pos.ep) {
-        this.halfMoveClock = 0;
-      } else this.halfMoveClock += 1;
-
       this.history.push({fen: this.fen(), move: [o, t]});
       this.position = this.position.move([o, t], promo);
       if (this.position.turn === WHITE) this.fullMove += 1;
@@ -340,16 +327,19 @@ export default class Engine {
       else return 'white';
     }
 
-    if ((this.config.fiftyMoveRule && this.fiftyMoves()) ||
-      (this.config.threefoldRepetition && this.inThreefoldRepetition()) ||
-      (this.inStaleMate())) return 'draw'
+    if (this.fiftyMoves() || this.inThreefoldRepetition() ||
+      this.inStaleMate() || this.insuffMaterial()) return 'draw'
 
     return null;
   }
 
+  insuffMaterial() {
+    return getPieces(this.position).insufficientMaterial();
+  }
+
   /** Returns true if in draw according to fifty move rule. */
   fiftyMoves(): boolean {
-    return this.halfMoveClock >= 50;
+    return this.position.halfMoveClock >= 50;
   }
 
   /** Returns true if the current board position has ocurred 3 or more times. */
@@ -415,12 +405,12 @@ export default class Engine {
    * @param [time=5000] Time to think in milliseconds. Min-value: 1000.
    * @return The move that was made.
    */
-  async aiMove(time: number = 5000): Promise<[Move, Piece | void] | void> {
+  async aiMove(): Promise<[Move, Piece | void] | void> {
     // This implies that there are valid moves to be made.
     if (this.winner() !== null) return;
 
-    const move = await aimove(this.position, this.history, time, this.aiInfo,
-      this.config.betweenDepths);
+    const move = await aimove(this.position, this.history,
+      this.config.searchTime, this.aiInfo, this.config.betweenDepths);
     if (move) {
       this.move(move[0][0], move[0][1], move[1]);
 

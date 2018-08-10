@@ -155,7 +155,7 @@ function inStalemate(pos: Position) {
   return true; // stalemate
 }
 
-function getPieces(pos: Position) {
+export function getPieces(pos: Position) {
   const pieces: Object = {};
   PIECES.forEach((e) => { pieces[e] = 0 });
   for (let i = 0; i < 64; i++) {
@@ -418,7 +418,7 @@ function alphaBeta(
 function mtdf(pos: Position, depth: number, guess: number): number {
   const bound = { lower: -MAX_SCORE, upper: MAX_SCORE };
   let beta;
-  let f = guess - SEARCH_MARGIN; // start lower to fail high earlier
+  let f = guess - 2 * SEARCH_MARGIN; // start lower to fail high earlier
 
   const pieces = getPieces(pos);
 
@@ -463,7 +463,7 @@ export default async function move(pos: Position,
   if (time > 60000) time = 60000
 
   // timeLimit and timeOut() is defined globally higher up
-  timeLimit = Date.now() + 5000; // run for 5 sec
+  timeLimit = Date.now() + time; // run for 5 sec
 
   // reset logging information
   logs.searched = 0;

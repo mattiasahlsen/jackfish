@@ -19,16 +19,37 @@
         Restart
       </button>
 
-      <div class="data">
+      <div class="mt-3">
+        <h6>AI search time</h6>
+        <div class="mb-2"><input v-model="game.config.searchTime"></div>
+        <button type="button" class="btn btn-outline-success" @click="setTime(2)">Easy</button>
+        <button type="button" class="btn btn-outline-warning" @click="setTime(4)">Medium</button>
+        <button type="button" class="btn btn-outline-danger"  @click="setTime(6)">Danger</button>
+      </div>
+
+      <div class="mt-3">
+        <h6>Fen of starting position.</h6>
+        <div><input v-model="startPos" class="fen"></div>
+        <button class="btn btn-dark" @click="setStartPos">Set position</button>
+        <button class="btn btn-dark" @click="resetStartPos">Reset</button>
+        <p v-if="invalidStartPos" class="text-danger">Invalid FEN string</p>
+      </div>
+
+      <div class="mt-3">
+        <h6>
+          <a href="https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation">
+            FEN
+          </a> of board
+        </h6>
+        <div><input v-model="fen" class="fen"></div>
+        <button class="btn btn-dark" @click="setPos">Set position</button>
+        <p v-if="invalidFen" class="text-danger">Invalid FEN string</p>
+      </div>
+
+      <div class="mt-3">
         <p><strong>Depth:</strong> {{aiInfo.depth}}</p>
         <p><strong>Nodes searched:</strong> {{aiInfo.searched}}</p>
         <p><strong>Hits in transposition table:</strong> {{aiInfo.tpHits}}</p>
-      </div>
-
-      <div class="fen">
-        <div><input v-model="fen"></div>
-        <button class="btn btn-dark" @click="setPos">Set position</button>
-        <p v-if="invalidFen" class="text-danger">Invalid FEN string</p>
       </div>
     </div>
 
@@ -43,7 +64,9 @@
       <p>
         This is a chess engine I've built in javascript. The "AI" uses
         <a href="https://chessprogramming.wikispaces.com/MTD%28f%29">mtd(f)</a>.
-        See more below.
+        All rules apply: insufficient material, fifty-move rule, threefold
+        repetition etc, and the AI recognizes all these as draws and evaluates
+        them accordingly. See more below.
       </p>
       <a class="btn btn-primary btn-lg" href="https://github.com/mattiasahlsen/jackfish/" role="button">
         Github repo
@@ -124,12 +147,16 @@ export default {
       aiInfo: game.aiInfo,
 
       fen: game.fen(),
+      startPos: game.config.startPos,
     };
   },
   computed: {
     invalidFen() {
       return !dummyGame.setPos(this.fen);
-    }
+    },
+    invalidStartPos() {
+      return !dummyGame.setPos(this.startPos);
+    },
   },
   watch: {
     'game.position.board': function() {
@@ -208,8 +235,27 @@ export default {
     restart() {
       this.game.restart();
     },
+
     setPos() {
       if (this.game.setPos(this.fen)) this.fen = this.game.fen();
+    },
+    setStartPos() {
+      if (dummyGame.setPos(this.startPos)) {
+        this.game.configure({
+          startPos: this.startPos
+        });
+      }
+    },
+    resetStartPos() {
+      this.game.configure({
+        startPos: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      });
+      this.startPos = this.game.config.startPos;
+    },
+    setTime(time) {
+      this.game.configure({
+        searchTime: time,
+      });
     }
   },
 }
@@ -237,13 +283,7 @@ export default {
   color: #333333;
 }
 
-.data {
-  margin-top: 30px;
-}
 .fen {
-  margin-top: 30px;
-}
-.fen input {
   width: 90%;
   margin-bottom: 10px;
 }
