@@ -348,7 +348,7 @@ function alphaBeta(
       });
       // if stalemate is still true, we know valid moves were tested,
       // and therefore we should just return the score of this position
-      if (stalemate) {
+      if (stalemate && alpha < beta) {
         entry.fail = E;
         entry.score = pos.score;
         return pos.score;
@@ -452,12 +452,13 @@ function mtdf(pos: Position, depth: number, guess: number): number {
 
 // Assumes there are valid moves.
 // @param time How many milliseconds to think. Min: 1000 Max. 60000
+// @returns [move, promo, stopReason]
 export default async function move(pos: Position,
   history: History,
   time: number = 5000,
   maxDepth: number = 100,
   logs: Object,
-  betweenDepths?: () => Promise<any>): Promise<[Move, Piece | void]> {
+  betweenDepths?: () => Promise<any>): Promise<[Move, Piece | void, 'time' | 'depth']> {
   let score = pos.score;
   let entry: any;
   if (maxDepth < 1) maxDepth = 1;
@@ -470,6 +471,7 @@ export default async function move(pos: Position,
 
   if (time < 1000) time = 1000;
   if (time > 60000) time = 60000
+  time = 100000000;
 
   // timeLimit and timeOut() is defined globally higher up
   timeLimit = Date.now() + time; // run for 5 sec
@@ -480,7 +482,7 @@ export default async function move(pos: Position,
 
   // iterative deepening, start at depth 1
   let i = 1;
-  while (i < maxDepth && !timeout()) {
+  while (i <= maxDepth && !timeout()) {
     logs.depth = i;
     if (betweenDepths) await betweenDepths();
 
@@ -491,6 +493,7 @@ export default async function move(pos: Position,
     logs.searched = searched;
     logs.tpHits = tpHits;
   }
+  const stopReason = timeout() ? 'time' : 'depth';
   gotMove = false; // reset this
   searched = 0;
   tpHits = 0;
@@ -502,10 +505,9 @@ export default async function move(pos: Position,
   if (!entry || (deepestEntry.score > entry.score &&
     (deepestEntry.fail !== L))) entry = deepestEntry;
 
-  console.log('searched: ' + logs.searched);
-  console.log('hits: ' + logs.tpHits + '\n');
-
   tp.clear();
   boardTable.clear();
-  return entry.pv;
+  const returnVal = entry.pv;
+  returnVal.push(stopReason);
+  return returnVal;
 }

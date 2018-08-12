@@ -128,7 +128,6 @@ describe('check', () => {
   expect(game.position.inCheck(WHITE)).toBe(false);
 
   game.setPos('rnbqkbnr/ppp2Ppp/8/3p4/8/8/PPPPP1PP/RNBQKBNR b KQkq - 0 4');
-  debugger;
   expect(game.position.inCheck(1)).toBe(true);
   expect(game.position.inCheck(BLACK)).toBe(true);
   expect(game.position.inCheck(WHITE)).toBe(false);
