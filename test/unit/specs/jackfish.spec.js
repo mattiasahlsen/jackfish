@@ -12,8 +12,7 @@ function testState (game: Engine, props): void {
   expect(position.turn).toBe(props.turn);
   expect(position.ep).toBe(props.ep);
   expect(position.kp).toBe(props.kp);
-
-  expect(game.halfMoveClock).toBe(props.halfMoveClock);
+  expect(position.halfMoveClock).toBe(props.halfMoveClock);
   expect(game.fullMove).toBe(props.fullMove);
 }
 
@@ -57,7 +56,6 @@ describe('setPos', () => {
 
     const props = startingProps();
     testState(game, props);
-    expect(props.halfMoveClock).toBe(game.halfMoveClock);
   })
 
   test('other FEN strings', () => {

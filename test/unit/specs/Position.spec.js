@@ -85,7 +85,13 @@ test('hashMove', () => {
     game2.setPos(pos);
     game2.move(parse(o), parse(t), promo);
 
-    expect(game1.position.hashMove([parse(o), parse(t)], promo)).toEqual(game2.position.hash);
+    expect(game1.position.hash).not.toEqual(game2.position.hash);
+    expect(game1.position.boardHash).not.toEqual(game2.position.boardHash);
+
+    expect(game1.position.hashMove([parse(o), parse(t)], promo)[0])
+      .toEqual(game2.position.hash);
+    expect(game1.position.hashMove([parse(o), parse(t)], promo)[1])
+      .toEqual(game2.position.boardHash);
   }
 
   // a normal move

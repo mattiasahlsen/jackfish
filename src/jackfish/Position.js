@@ -140,9 +140,7 @@ export default class Position {
       this.bc = bc;
       this.ep = ep;
       this.kp = kp;
-
-      if (halfMoveClock !== undefined) this.halfMoveClock = halfMoveClock;
-      else this.halfMoveClock = 0;
+      this.halfMoveClock = halfMoveClock;
     }
 
     if (score !== undefined) this.score = score;
@@ -353,8 +351,8 @@ export default class Position {
     return score;
   }
 
-  /** Returns the resulting hashes from a move (position hash and board hash).
-      Assumes it's a valid move. */
+  /** Returns the resulting hashes ([posHash, boardHash]) from a move
+      (position hash and board hash). Assumes it's a valid move. */
   hashMove(move: Move, promo?: Piece): [Hash, Hash] {
     const o = move[0];
     const t = move[1];
