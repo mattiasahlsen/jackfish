@@ -234,7 +234,7 @@ function alphaBeta(
   entry = (tp.add(pos.hash,
     { pv: pv, score: alpha, depth: depth, fail: L }): Entry);
 
-  // Determine if endgame.
+  // Determine if we're in endgame.
   // Endgame begins when any side that has a queen has one other minorpiece maximum.
   // Disable delta pruning, change king pst and look for stalemates.
   const endgame: boolean = pieces.endgame();
@@ -346,6 +346,13 @@ function alphaBeta(
         }
         return false; // let forMoves() keep running
       });
+      // if stalemate is still true, we know valid moves were tested,
+      // and therefore we should just return the score of this position
+      if (stalemate) {
+        entry.fail = E;
+        entry.score = pos.score;
+        return pos.score;
+      }
     }
   } else {
     // depth >= 1
