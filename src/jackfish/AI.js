@@ -249,24 +249,16 @@ function alphaBeta(
     // if time's out
     if (timeout()) return true;
 
+    // must be a beta cutoff since it's a null window search
     if (score > alpha) {
-      if (score >= MAX_SCORE) {
-        alpha = MAX_SCORE;
-        entry.fail = H
-        return true;
-      }
-
+      entry.fail = H
       stalemate = false; // my move was valid
       entry.pv = [move, promo]; // new pv
 
-      if (score >= beta) {
-        alpha = beta;
-        entry.fail = H;
-        return true;
-      } else {
-        alpha = score;
-        entry.fail = E;
-      }
+      if (score >= MAX_SCORE) alpha = MAX_SCORE;
+      else alpha = beta;
+
+      return true;
     } else if (score > -MAX_SCORE) stalemate = false; // if my move was valid
     return false;
   };
