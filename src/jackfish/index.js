@@ -412,12 +412,12 @@ export default class Engine {
    * @param [time=5000] Time to think in milliseconds. Min-value: 1000.
    * @return The move that was made.
    */
-  async aiMove(): Promise<[Move, Piece | void] | void> {
+  async aiMove(maxDepth?: number): Promise<[Move, Piece | void] | void> {
     // This implies that there are valid moves to be made.
     if (this.winner() !== null) return;
 
     const move = await aimove(this.position, this.history,
-      this.config.searchTime * 1000, this.aiInfo, this.config.betweenDepths);
+      this.config.searchTime * 1000, maxDepth, this.aiInfo, this.config.betweenDepths);
     if (move) {
       this.move(move[0][0], move[0][1], move[1]);
 

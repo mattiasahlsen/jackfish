@@ -448,10 +448,12 @@ function mtdf(pos: Position, depth: number, guess: number): number {
 export default async function move(pos: Position,
   history: History,
   time: number = 5000,
+  maxDepth: number = 100,
   logs: Object,
   betweenDepths?: () => Promise<any>): Promise<[Move, Piece | void]> {
   let score = pos.score;
   let entry: any;
+  if (maxDepth < 1) maxDepth = 1;
 
   // set up position table (for three-repeat rule)
   history.forEach(e => {
@@ -469,9 +471,9 @@ export default async function move(pos: Position,
   logs.searched = 0;
   logs.tpHits = 0;
 
-  // iterative deepening
+  // iterative deepening, start at depth 1
   let i = 1;
-  while (i < 100 && !timeout()) {
+  while (i < maxDepth && !timeout()) {
     logs.depth = i;
     if (betweenDepths) await betweenDepths();
 
