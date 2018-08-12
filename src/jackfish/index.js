@@ -222,6 +222,11 @@ export default class Engine {
     return true;
   }
 
+  validFen(fen: string) {
+    const dummy = new this.constructor();
+    return dummy.setPos(fen);
+  }
+
   /**
    * Returns the FEN representation of the game.
    * @return The FEN string.

@@ -62,9 +62,11 @@ describe('setPos', () => {
     const game = new Engine();
     fens.valid.forEach(e => {
       expect(game.setPos(e)).toBe(true);
+      expect(game.validFen(e)).toBe(true);
     });
     fens.invalid.forEach(e => {
       expect(game.setPos(e)).toBe(false);
+      expect(game.validFen(e)).toBe(false);
     });
   });
 
