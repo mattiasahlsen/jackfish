@@ -147,7 +147,6 @@ import { WHITE, BLACK } from '@/jackfish/declarations';
 import { rank, parse } from '@/jackfish/helpers';
 
 const game = new Engine();
-const dummyGame = new Engine(); // used for it's methods
 
 export default {
   name: 'Home',
@@ -168,10 +167,10 @@ export default {
   },
   computed: {
     invalidFen() {
-      return !dummyGame.setPos(this.fen);
+      return !game.validFen(this.fen);
     },
     invalidStartPos() {
-      return !dummyGame.setPos(this.startPos);
+      return !game.validFen(this.startPos);
     },
   },
   watch: {
@@ -256,7 +255,7 @@ export default {
       if (this.game.setPos(this.fen)) this.fen = this.game.fen();
     },
     setStartPos() {
-      if (dummyGame.setPos(this.startPos)) {
+      if (game.validFen(this.startPos)) {
         this.game.configure({
           startPos: this.startPos
         });
