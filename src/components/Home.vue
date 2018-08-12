@@ -20,11 +20,11 @@
       </button>
 
       <div class="mt-3">
-        <h6>AI search time</h6>
+        <h6>AI search time (s)</h6>
         <div class="mb-2"><input v-model="game.config.searchTime"></div>
         <button type="button" class="btn btn-outline-success" @click="setTime(2)">Easy</button>
         <button type="button" class="btn btn-outline-warning" @click="setTime(4)">Medium</button>
-        <button type="button" class="btn btn-outline-danger"  @click="setTime(6)">Danger</button>
+        <button type="button" class="btn btn-outline-danger"  @click="setTime(6)">Hard</button>
       </div>
 
       <div class="mt-3">
