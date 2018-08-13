@@ -59,6 +59,8 @@ export default class Position {
   hash: Hash;
   boardHash: Hash;
 
+  prev: Position | void;
+
   constructor(
     boardOrFen: Board | string,
     turn: Color = WHITE,
@@ -214,9 +216,11 @@ export default class Position {
    */
   nullMove(): Position {
     // copying board with slice, works because it's shallow
-    return new Position(this.board.slice(), next(this.turn), this.wc, this.bc,
+    const ret = new Position(this.board.slice(), next(this.turn), this.wc, this.bc,
       -1, -1, this.halfMoveClock + 1,
       -this.score, this.hashNullMove(), this.boardHash);
+    ret.prev = this;
+    return ret;
   }
 
   /**
@@ -303,8 +307,10 @@ export default class Position {
 
     const newHashes = this.hashMove(move, promo)
 
-    return new Position(board, next(this.turn), wc, bc, ep, kp,
+    const ret = new Position(board, next(this.turn), wc, bc, ep, kp,
       halfMoveClock, score, newHashes[0], newHashes[1]);
+    ret.prev = this;
+    return ret;
   }
 
   /**

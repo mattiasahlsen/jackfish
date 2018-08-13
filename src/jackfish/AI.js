@@ -4,7 +4,6 @@
  * @flow
  */
 
-// import Engine from './';
 import Position, { A1, H8 } from './Position';
 import { Cwf } from './tp'
 import { PIECE } from './evaluation';
@@ -198,6 +197,7 @@ function alphaBeta(
   pieces: Object,
   root: boolean = false): number {
   searched++;
+  if (depth < 0) depth = 0;
 
   // draw
   if (pos.halfMoveClock >= 50) {
@@ -279,7 +279,7 @@ function alphaBeta(
           // can't take king)
           if (!nextPos.inCheck(pos.turn)) {
             boardTable.push(nextPos.boardHash);
-            const score = -alphaBeta(nextPos, depth - 1, -beta, -alpha, pieces.new(tp));
+            const score = -alphaBeta(nextPos, 0, -beta, -alpha, pieces.new(tp));
             boardTable.pull(nextPos.boardHash);
             return handleMove(move, promo, score);
           } else return false;
@@ -332,13 +332,14 @@ function alphaBeta(
           // passes margin and not silent positon, search deeper
           const nextPos = pos.move(move, promo, -nextScore);
           boardTable.push(nextPos.boardHash);
-          const score = -alphaBeta(nextPos, depth - 1, -beta, -alpha, pieces.new(tp));
+          const score = -alphaBeta(nextPos, 0, -beta, -alpha, pieces.new(tp));
           boardTable.pull(nextPos.boardHash);
           return handleMove(move, promo, score);
         }
         return false; // let forMoves() keep running
       });
-      // if stalemate is still true, we know valid moves were tested,
+      // if stalemate is still true, we know no valid moves were tested,
+      // but we don't know if there were no valid moves
       // and therefore we should just return the score of this position
       if (stalemate && alpha < beta) {
         entry.fail = E;
@@ -414,10 +415,11 @@ function alphaBeta(
   return alpha;
 }
 
-function mtdf(pos: Position, depth: number, guess: number): number {
+// return bound in case of timeout
+function mtdf(pos: Position, depth: number, guess: number): [number, number] {
   const bound = { lower: -MAX_SCORE, upper: MAX_SCORE };
-  let beta;
-  let f = guess - 2 * SEARCH_MARGIN; // start lower to fail high earlier
+  let f = guess;
+  let beta = f - 2 * SEARCH_MARGIN; // start lower to fail high earlier
 
   const pieces = getPieces(pos);
 
@@ -428,7 +430,6 @@ function mtdf(pos: Position, depth: number, guess: number): number {
       else beta = f + (f === bound.lower ? 1 : 0);
     } else if (f === bound.lower) beta = f + SEARCH_MARGIN;
     else if (f === bound.upper) beta = f - SEARCH_MARGIN;
-    else beta = f;
 
     f = alphaBeta(pos, depth, beta - 1, beta, pieces.new(), true);
 
@@ -439,7 +440,7 @@ function mtdf(pos: Position, depth: number, guess: number): number {
     }
   } while (bound.lower <= bound.upper - 1 && !timeout()); // - 0.01 for floating point inaccuracy
 
-  return f;
+  return [bound.lower, bound.upper];
 }
 
 // Assumes there are valid moves.
@@ -452,7 +453,9 @@ export default async function move(pos: Position,
   logs: Object,
   betweenDepths?: () => Promise<any>): Promise<[Move, Piece | void, 'time' | 'depth']> {
   let score = pos.score;
+  let bound;
   let entry: any;
+
   if (maxDepth < 1) maxDepth = 1;
 
   // set up position table (for three-repeat rule)
@@ -463,7 +466,6 @@ export default async function move(pos: Position,
 
   if (time < 1000) time = 1000;
   if (time > 60000) time = 60000
-  time = 100000000;
 
   // timeLimit and timeOut() is defined globally higher up
   timeLimit = Date.now() + time; // run for 5 sec
@@ -480,7 +482,9 @@ export default async function move(pos: Position,
 
     // get the tp entry from the previous depth
     if (i > 1) entry = tp.get(pos.hash);
-    score = mtdf(pos, i, score)
+    bound = mtdf(pos, i, score);
+    // lower bound and upper bound will always be the same unless interrupted
+    score = bound[0];
     i++;
     logs.searched = searched;
     logs.tpHits = tpHits;
@@ -494,8 +498,10 @@ export default async function move(pos: Position,
   // to the entry from the depth before to see which one is best
   const deepestEntry: any = tp.get(pos.hash); // should always be a hit
   // if we didn't even finish depth 1, entry won't be defined
-  if (!entry || (deepestEntry.score > entry.score &&
-    (deepestEntry.fail !== L))) entry = deepestEntry;
+  if (!entry ||
+    ((bound: any)[0] > entry.score) || // means we got a better move
+    ((bound: any)[1] < entry.score) // means the move we have is worse than we thought
+  ) entry = deepestEntry;
 
   tp.clear();
   boardTable.clear();
