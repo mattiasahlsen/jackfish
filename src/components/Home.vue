@@ -1,76 +1,82 @@
 <template>
   <div>
-    <h1>Jackfish</h1>
-    <h2>A chess engine in javascript.</h2>
-    <div class="game-status">
-      <h3 v-if="winner === 'white'">The winner is
-        <span class="white">white</span></h3>
-      <h3 v-else-if="winner === 'black'">The winner is
-        <span class="black">black</span></h3>
-      <h3 v-else-if="winner === 'draw'">It's a draw</h3>
-      <h3 v-else :style="{ visibility: 'hidden' }">
-        Game is still running.
-      </h3>
-
-      <button type="button" class="btn btn-light" @click="undoMove">
-        Undo move
-      </button>
-      <button type="button" class="btn btn-light" @click="restart">
-        Restart
-      </button>
-
-      <div class="mt-3">
-        <h6>AI search time (s)</h6>
-        <div class="mb-2"><input v-model="game.config.searchTime"></div>
-        <button type="button" class="btn btn-outline-success" @click="setTime(2)">Easy</button>
-        <button type="button" class="btn btn-outline-warning" @click="setTime(4)">Medium</button>
-        <button type="button" class="btn btn-outline-danger"  @click="setTime(6)">Hard</button>
+    <header id="header">
+      <h1>Jackfish</h1>
+      <h2>A chess engine in javascript.</h2>
+    </header>
+    <div class="container-fluid">
+      <Promotion v-if="promotion" :pos="promotion.pos" :board="$refs.board"
+        :color="promotion.color" @done="handlePromotion">
+      </Promotion>
+      <div id="board" ref="board" @click="cancel">
       </div>
 
-      <div class="mt-3">
-        <h6>Fen of starting position.</h6>
-        <div><input v-model="startPos" class="fen"></div>
-        <button class="btn btn-dark" @click="setStartPos">Set position</button>
-        <button class="btn btn-dark" @click="resetStartPos">Reset</button>
-        <p v-if="invalidStartPos" class="text-danger">Invalid FEN string</p>
+      <div class="row">
+        <div class="game-status col-sm-6">
+          <h3 v-if="winner === 'white'">The winner is
+            <span class="white">white</span></h3>
+          <h3 v-else-if="winner === 'black'">The winner is
+            <span class="black">black</span></h3>
+          <h3 v-else-if="winner === 'draw'">It's a draw</h3>
+          <h3 v-else :style="{ visibility: 'hidden' }">
+            Game is still running.
+          </h3>
+
+          <button type="button" class="btn btn-light" @click="undoMove">
+            Undo move
+          </button>
+          <button type="button" class="btn btn-light" @click="restart">
+            Restart
+          </button>
+
+          <div class="mt-3">
+            <h6>AI search time (s)</h6>
+            <div class="mb-2"><input v-model="game.config.searchTime"></div>
+            <button type="button" class="btn btn-outline-success" @click="setTime(2)">Easy</button>
+            <button type="button" class="btn btn-outline-warning" @click="setTime(4)">Medium</button>
+            <button type="button" class="btn btn-outline-danger"  @click="setTime(6)">Hard</button>
+          </div>
+
+          <div class="mt-3">
+            <h6>Fen of starting position.</h6>
+            <div><input v-model="startPos" class="fen"></div>
+            <button class="btn btn-dark" @click="setStartPos">Set position</button>
+            <button class="btn btn-dark" @click="resetStartPos">Reset</button>
+            <p v-if="invalidStartPos" class="text-danger">Invalid FEN string</p>
+          </div>
+
+          <div class="mt-3">
+            <h6>
+              <a href="https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation">
+                FEN
+              </a> of board
+            </h6>
+            <div><input v-model="fen" class="fen"></div>
+            <button class="btn btn-dark" @click="setPos">Set position</button>
+            <p v-if="invalidFen" class="text-danger">Invalid FEN string</p>
+          </div>
+
+          <div class="mt-3">
+            <p><strong>Depth:</strong> {{aiInfo.depth}}</p>
+            <p><strong>Nodes searched:</strong> {{aiInfo.searched}}</p>
+            <p><strong>Hits in transposition table:</strong> {{aiInfo.tpHits}}</p>
+          </div>
+        </div>
+
+        <div class="col-sm-6 links">
+          <h3>About</h3>
+          <p>
+            This is a chess engine I've built in javascript. The "AI" uses
+            <a href="https://chessprogramming.wikispaces.com/MTD%28f%29">mtd(f)</a>.
+            All rules apply: insufficient material, fifty-move rule, threefold
+            repetition etc, and the AI recognizes all these as draws and evaluates
+            them accordingly. See more below.
+          </p>
+          <a class="btn btn-primary btn-lg" href="https://github.com/mattiasahlsen/jackfish/" role="button">
+            Github repo
+          </a>
+        </div>
       </div>
-
-      <div class="mt-3">
-        <h6>
-          <a href="https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation">
-            FEN
-          </a> of board
-        </h6>
-        <div><input v-model="fen" class="fen"></div>
-        <button class="btn btn-dark" @click="setPos">Set position</button>
-        <p v-if="invalidFen" class="text-danger">Invalid FEN string</p>
-      </div>
-
-      <div class="mt-3">
-        <p><strong>Depth:</strong> {{aiInfo.depth}}</p>
-        <p><strong>Nodes searched:</strong> {{aiInfo.searched}}</p>
-        <p><strong>Hits in transposition table:</strong> {{aiInfo.tpHits}}</p>
-      </div>
-    </div>
-
-    <Promotion v-if="promotion" :pos="promotion.pos" :board="$refs.board"
-      :color="promotion.color" @done="handlePromotion">
-    </Promotion>
-    <div id="board" ref="board" @click="cancel">
-    </div>
-
-    <div class="links">
-      <h3>About</h3>
-      <p>
-        This is a chess engine I've built in javascript. The "AI" uses
-        <a href="https://chessprogramming.wikispaces.com/MTD%28f%29">mtd(f)</a>.
-        All rules apply: insufficient material, fifty-move rule, threefold
-        repetition etc, and the AI recognizes all these as draws and evaluates
-        them accordingly. See more below.
-      </p>
-      <a class="btn btn-primary btn-lg" href="https://github.com/mattiasahlsen/jackfish/" role="button">
-        Github repo
-      </a>
     </div>
 
     <div class="about mt-4 mb-4">
@@ -163,6 +169,7 @@ export default {
 
       fen: game.fen(),
       startPos: game.config.startPos,
+      board: null,
     };
   },
   computed: {
@@ -197,12 +204,12 @@ export default {
       },
     })
 
-    const onDragStart = (src, piece) => {
+    this.onDragStart = (src, piece) => {
       return (piece.charAt(0) === 'w' ? WHITE : BLACK) === this.game.position.turn &&
       this.winner === null;
     }
 
-    const onDrop = (src, target, piece) => {
+    this.onDrop = (src, target, piece) => {
       if (!this.game.valid(src, target)) return 'snapback';
 
       // pawn promotion
@@ -221,15 +228,27 @@ export default {
 
       this.game.move(src, target); // we already know it's valid
     }
-
-    this.board = Chessboard('board', {
-      position: this.game.fen(),
-      draggable: true,
-      onDrop,
-      onDragStart,
-    });
+    this.createBoard()
   },
   methods: {
+    createBoard() {
+      console.log($(window).width() * 0.9)
+      this.$refs.board.style.width = this.$refs.board.style.height =
+        Math.min($(window).height() - $('#header').height() - 15, $(window).width() * 0.8) + 'px'
+      this.$refs.board.style.marginLeft = 'auto'
+      this.$refs.board.style.marginRight = 'auto'
+
+      this.board = Chessboard('board', {
+        position: this.game.fen(),
+        draggable: true,
+        onDrop: this.onDrop,
+        onDragStart: this.onDragStart,
+      });
+    },
+    destroyBoard() {
+      if (this.board) this.board.destroy()
+      this.board = null
+    },
     handlePromotion(piece) {
       this.game.move(
         this.promotion.src,
@@ -279,14 +298,17 @@ export default {
 <style scoped>
 #board {
   width: 50%;
-  margin: auto;
+  height: 100vh;
   margin-bottom: 50px;
-  display: inline-block;
-  float: left;
+  touch-action: none;
+}
+.row {
+  width: 100%;
+  margin: 0 auto;
 }
 .game-status {
-  float: left;
-  width: 25%;
+  margin-left: auto;
+  margin-right: auto;
 }
 .game-status h3 {
   color: #737373;
@@ -304,9 +326,9 @@ export default {
 }
 
 .links {
-  float: left;
-  width: 25%;
   padding: 5px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .about {
@@ -318,5 +340,12 @@ export default {
   display: inline-block;
   float: right;
   margin-right: 10px;
+}
+
+#header {
+  margin-bottom: 5px;
+}
+h1, h2 {
+  margin: 0;
 }
 </style>

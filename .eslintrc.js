@@ -36,5 +36,6 @@ module.exports = {
     // don't want space before method
     'space-before-function-paren': 'off',
     'import/first': 'off',
+    'no-undef': 'off',
   }
 }
