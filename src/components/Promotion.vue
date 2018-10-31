@@ -30,10 +30,14 @@ const imgs = {
 };
 
 for (const key in imgs.white) {
-  imgs.white[key] = '/img/chesspieces/wikipedia/' + imgs.white[key] + '.png';
+  import('../assets/img/chesspieces/wikipedia/' + imgs.white[key] + '.png').then(val => {
+    imgs.white[key] = val;
+  })
 }
 for (const key in imgs.black) {
-  imgs.black[key] = '/img/chesspieces/wikipedia/' + imgs.black[key] + '.png';
+  import('../assets/img/chesspieces/wikipedia/' + imgs.black[key] + '.png').then(val => {
+    imgs.black[key] = val;
+  })
 }
 
 export default {

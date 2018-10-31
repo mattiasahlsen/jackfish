@@ -8,7 +8,7 @@
       <Promotion v-if="promotion" :pos="promotion.pos" :board="$refs.board"
         :color="promotion.color" @done="handlePromotion">
       </Promotion>
-      <div id="board" ref="board" @click="cancel">
+      <div id="board" ref="board" @click="cancel" touch-action="none">
       </div>
 
       <div class="row">
@@ -229,6 +229,7 @@ export default {
       this.game.move(src, target); // we already know it's valid
     }
     this.createBoard()
+    this.$refs.board.ontouchmove = (event) => event.preventDefault()
   },
   methods: {
     createBoard() {
