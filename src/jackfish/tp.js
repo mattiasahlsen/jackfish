@@ -21,7 +21,7 @@ const random = new Random(Random.engines.mt19937().seed(27102));
  * 32 bit signed integers.
  */
 
-// get 2 random 32 bit integers
+// get a random 32 bit integer
 export function rand() {
   return random.integer(-Math.pow(2, 31), Math.pow(2, 31) - 1);
 }

@@ -412,7 +412,7 @@ export default class Engine {
    * @param [time=5000] Time to think in milliseconds. Min-value: 1000.
    * @return The move that was made.
    */
-  async aiMove(maxDepth?: number): Promise<[Move, Piece | void] | void> {
+  async aiMove(maxDepth?: number): Promise<[Move, Piece | void, 'time' | 'depth' ] | void> {
     // This implies that there are valid moves to be made.
     if (this.winner() !== null) return;
 

@@ -503,6 +503,7 @@ export default async function move(pos: Position,
     ((bound: any)[1] < entry.score) // means the move we have is worse than we thought
   ) entry = deepestEntry;
 
+  // clear transposition table between depths
   tp.clear();
   boardTable.clear();
   const returnVal = entry.pv;
