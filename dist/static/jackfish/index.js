@@ -411,17 +411,15 @@ export default class Engine {
    * Let the AI make a move. If there are no valid moves, return null.
    * @return The move that was made.
    */
-  async aiMove(maxDepth, showMove) {
+  async aiMove(maxDepth?: number): Promise<[Move, Piece | void, 'time' | 'depth' ] | void> {
+    console.log('check')
+    return
     // This implies that there are valid moves to be made.
     if (this.winner() !== null) return;
 
-    const entry = await aimove(this.position, this.history,
+    const move = await aimove(this.position, this.history,
       this.config.searchTime * 1000, maxDepth, this.aiInfo, this.config.betweenDepths);
-    const move = entry.pv
     if (move) {
-      if (showMove) {
-        await showMove(entry)
-      }
       this.move(move[0][0], move[0][1], move[1]);
 
       return move;

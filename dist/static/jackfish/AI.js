@@ -187,6 +187,7 @@ export function getPieces(pos: Position) {
 }
 
 // Main algorithm
+
 // generic alpha-beta algorithm, doesn't assume mtd(f) search
 function alphaBeta(
   pos: Position,
@@ -195,7 +196,6 @@ function alphaBeta(
   beta: number,
   pieces: Object,
   root: boolean = false): number {
-  //await new Promise((resolve, reject) => { setTimeout(resolve, 1) })
   searched++;
   if (depth < 0) depth = 0;
 
@@ -279,7 +279,7 @@ function alphaBeta(
           // can't take king)
           if (!nextPos.inCheck(pos.turn)) {
             boardTable.push(nextPos.boardHash);
-            const score = -alphaBeta(nextPos, 0, -beta, -alpha, pieces.new(tp))
+            const score = -alphaBeta(nextPos, 0, -beta, -alpha, pieces.new(tp));
             boardTable.pull(nextPos.boardHash);
             return handleMove(move, promo, score);
           } else return false;
@@ -332,7 +332,7 @@ function alphaBeta(
           // passes margin and not silent positon, search deeper
           const nextPos = pos.move(move, promo, -nextScore);
           boardTable.push(nextPos.boardHash);
-          const score = -alphaBeta(nextPos, 0, -beta, -alpha, pieces.new(tp))
+          const score = -alphaBeta(nextPos, 0, -beta, -alpha, pieces.new(tp));
           boardTable.pull(nextPos.boardHash);
           return handleMove(move, promo, score);
         }
@@ -369,7 +369,7 @@ function alphaBeta(
     // if in check, will not fail high
     let score;
     if (!root && !endgame) {
-      score = -alphaBeta(pos.nullMove(), depth - 3, -beta, -alpha, pieces.new())
+      score = -alphaBeta(pos.nullMove(), depth - 3, -beta, -alpha, pieces.new());
       if (score >= beta) {
         entry.score = beta;
         entry.fail = H;
@@ -391,7 +391,7 @@ function alphaBeta(
 
       const nextPos = pos.move(move, promo, -nextScore);
       boardTable.push(nextPos.boardHash);
-      const score = -alphaBeta(nextPos, depth - 1, -beta, -alpha, pieces.new())
+      const score = -alphaBeta(nextPos, depth - 1, -beta, -alpha, pieces.new());
       boardTable.pull(nextPos.boardHash);
       return handleMove(move, promo, score);
     });
@@ -416,7 +416,7 @@ function alphaBeta(
 }
 
 // return bound in case of timeout
-async function mtdf(pos: Position, depth: number, guess: number): [number, number] {
+function mtdf(pos: Position, depth: number, guess: number): [number, number] {
   const bound = { lower: -MAX_SCORE, upper: MAX_SCORE };
   let f = guess;
   let beta = f - 2 * SEARCH_MARGIN; // start lower to fail high earlier
@@ -448,13 +448,13 @@ async function mtdf(pos: Position, depth: number, guess: number): [number, numbe
 // @returns [move, promo, stopReason]
 export default async function move(pos: Position,
   history: History,
-  time: number = 10000,
+  time: number = 5000,
   maxDepth: number = 100,
   logs: Object,
   betweenDepths?: () => Promise<any>): Promise<[Move, Piece | void, 'time' | 'depth']> {
   let score = pos.score;
   let bound;
-  //let entry: any;
+  let entry: any;
 
   if (maxDepth < 1) maxDepth = 1;
 
@@ -478,28 +478,11 @@ export default async function move(pos: Position,
   let i = 1;
   while (i <= maxDepth && !timeout()) {
     logs.depth = i;
-    //if (betweenDepths) await betweenDepths();
+    if (betweenDepths) await betweenDepths();
 
     // get the tp entry from the previous depth
-    //if (i > 1) entry = tp.get(pos.hash);
-
-    const moves = Array.from(pos.genMoves())
-    for (let j = 0; j < moves.length; j++){
-      const move = moves[j]
-      const nextPos = pos.move(move);
-      const entry = tp.get(nextPos.hash)
-
-      bound = await mtdf(nextPos, i - 1, entry && entry.score)
-      const newScore = -bound[1]
-      if (!score || score < newScore) score = newScore
-
-      //console.log(entry)
-      if (betweenDepths) {
-        if (entry) await betweenDepths(move, j, entry.score, entry.depth + 1)
-        else await betweenDepths(move, j, pos.score, 1)
-      }
-    }
-    bound = await mtdf(pos, i, score);
+    if (i > 1) entry = tp.get(pos.hash);
+    bound = mtdf(pos, i, score);
     // lower bound and upper bound will always be the same unless interrupted
     score = bound[0];
     i++;
@@ -511,20 +494,19 @@ export default async function move(pos: Position,
   searched = 0;
   tpHits = 0;
 
+  // compare entry from the latest depth (that got interrupted)
+  // to the entry from the depth before to see which one is best
   const deepestEntry: any = tp.get(pos.hash); // should always be a hit
   // if we didn't even finish depth 1, entry won't be defined
-  const entry = deepestEntry
-  /*if (!entry ||
+  if (!entry ||
     ((bound: any)[0] > entry.score) || // means we got a better move
     ((bound: any)[1] < entry.score) // means the move we have is worse than we thought
-  ) entry = deepestEntry;*/
-
+  ) entry = deepestEntry;
 
   // clear transposition table between depths
   tp.clear();
   boardTable.clear();
-  //const returnVal = entry.pv;
-  //returnVal.push(stopReason);
-  //return returnVal;
-  return entry
+  const returnVal = entry.pv;
+  returnVal.push(stopReason);
+  return returnVal;
 }
